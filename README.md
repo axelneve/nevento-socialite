@@ -166,6 +166,20 @@ For **Filament**, disable the built-in login page so unauthenticated `/admin` re
 
 ---
 
+## IDP OAuth endpoints
+
+The package connects to the following endpoints on `NEVENTO_HOST`:
+
+| Endpoint | URL |
+|---|---|
+| Authorization | `{NEVENTO_HOST}/oauth/authorize` |
+| Token exchange | `{NEVENTO_HOST}/oauth/token` |
+| User info | `{NEVENTO_HOST}/api/user` |
+
+Production host: `https://idp.nevento.nl`
+
+---
+
 ## Routes registered by the package
 
 When `services.nevento.load_routes` is `true` (the default), three routes are registered automatically:
