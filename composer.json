@@ -1,0 +1,26 @@
+{
+    "name": "eventsolutions/nevento-socialite",
+    "description": "Nevento IDP OAuth2 Socialite driver for EventSolutions client website backends",
+    "version": "1.0.0",
+    "type": "library",
+    "license": "proprietary",
+    "require": {
+        "php": "^8.3",
+        "laravel/framework": "^12.0|^13.0",
+        "laravel/socialite": "^5.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "EventSolutions\\NeventoSocialite\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "EventSolutions\\NeventoSocialite\\NeventoServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
