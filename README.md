@@ -252,9 +252,89 @@ After a successful login the following session keys are written:
 | `nevento_user` | `['id', 'name', 'email']` from the IDP |
 | `nevento_workspace` | `['id', 'name', 'slug', 'roles', 'is_admin']` |
 | `nevento_role` | First role string, e.g. `'admin'` |
+| `nevento_roles` | Full roles array for the current workspace |
+| `nevento_workspaces` | All workspaces the user belongs to (multi-workspace apps; empty otherwise) |
+| `nevento_superadmin` | `true`/`false` — global superadmin flag from the IDP |
+| `nevento_license` | License/entitlement array if the IDP reports it, else `null` |
 | `nevento_token_expires_at` | Unix timestamp of token expiry, or `null` |
 
+Prefer `NeventoContext` (above) over reading these keys directly — it's the stable API.
+
 ---
+
+## Multi-workspace apps (superadmin, workspace switching, role sync)
+
+Everything below is **opt-in and additive** — a single-workspace site (like VOER)
+can ignore all of it and keeps working exactly as before.
+
+### Reading IDP context: `NeventoContext`
+
+```php
+use EventSolutions\NeventoSocialite\NeventoContext;
+
+NeventoContext::user();            // ['id' => ..., 'name' => ..., 'email' => ...]
+NeventoContext::workspace();       // current workspace array
+NeventoContext::workspaces();      // all workspaces the user belongs to (multi-workspace apps)
+NeventoContext::role();            // first role in the current workspace, e.g. 'admin'
+NeventoContext::roles();           // full roles array for the current workspace
+NeventoContext::isSuperadmin();    // true if the IDP flagged this user as global superadmin
+NeventoContext::hasRole('admin');  // true if 'admin' is in roles(), or isSuperadmin()
+NeventoContext::hasAnyRole(['admin', 'office']);
+NeventoContext::license();         // license/entitlement array, if the IDP reports it (currently often null)
+NeventoContext::isLicenseActive(); // true/false, or null if the IDP hasn't reported license state yet
+NeventoContext::tokenExpiresAt();  // unix timestamp or null
+```
+
+### Syncing roles into your own permission system
+
+If your app has its own permission layer (e.g. Spatie roles), bind a
+`SyncsWorkspaceRoles` implementation in a service provider:
+
+```php
+use EventSolutions\NeventoSocialite\Contracts\SyncsWorkspaceRoles;
+
+$this->app->bind(SyncsWorkspaceRoles::class, function () {
+    return new class implements SyncsWorkspaceRoles {
+        public function sync(Authenticatable $user, array $roles, array $workspace): void
+        {
+            // e.g. $user->syncRoleKeys($roles);
+        }
+    };
+});
+```
+
+This is called automatically after login and after every workspace switch. If
+nothing is bound, it's silently skipped — existing single-workspace apps don't
+need this at all.
+
+### Workspace switching
+
+Enable in `config/services.php`:
+
+```php
+'nevento' => [
+    // ...
+    'enable_workspace_switching' => true,
+    'redirect_after_switch'      => '/',
+],
+```
+
+This registers `GET /auth/workspace/{workspaceId}/switch` (`nevento.workspace.switch`).
+It looks up the target workspace from `NeventoContext::workspaces()` (session-only,
+no new IDP round-trip), updates the session, re-runs the `SyncsWorkspaceRoles` hook,
+and redirects.
+
+### Role-gated middleware with superadmin bypass
+
+`RequireWorkspaceAccess` now checks the **full** roles array (not just the first
+role) and always passes for superadmins:
+
+```php
+Route::middleware('nevento.workspace:admin')->group(function () {
+    // passes if 'admin' is anywhere in the user's roles for this workspace,
+    // or if NeventoContext::isSuperadmin() is true
+});
+```
 
 ## Custom error view
 

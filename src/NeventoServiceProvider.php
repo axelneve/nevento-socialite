@@ -27,6 +27,10 @@ class NeventoServiceProvider extends ServiceProvider
 
         if (config('services.nevento.load_routes', true)) {
             $this->loadRoutesFrom(__DIR__.'/../routes/auth.php');
+
+            if (config('services.nevento.enable_workspace_switching', false)) {
+                $this->loadRoutesFrom(__DIR__.'/../routes/workspace.php');
+            }
         }
     }
 

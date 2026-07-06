@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace EventSolutions\NeventoSocialite\Http\Middleware;
 
 use Closure;
+use EventSolutions\NeventoSocialite\NeventoContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
@@ -27,12 +28,11 @@ class RequireWorkspaceAccess
                 ->withErrors(['auth' => 'Je sessie is verlopen. Log opnieuw in.']);
         }
 
-        if (! empty($roles)) {
-            $userRole = session('nevento_role', '');
-
-            if (! in_array($userRole, $roles, true)) {
-                abort(403, 'Onvoldoende rechten voor deze actie.');
-            }
+        // Checks against the full roles array (and bypasses for superadmins) —
+        // a strict superset of the old first-role-only check, so nobody who
+        // previously passed can now be blocked.
+        if (! empty($roles) && ! NeventoContext::hasAnyRole($roles)) {
+            abort(403, 'Onvoldoende rechten voor deze actie.');
         }
 
         return $next($request);
