@@ -32,10 +32,21 @@ class NeventoServiceProvider extends ServiceProvider
                 $this->loadRoutesFrom(__DIR__.'/../routes/workspace.php');
             }
         }
+
+        // Internal tenant-provisioning API (IDP -> this app). Opt-out via config.
+        if (config('nevento-provisioning.enabled', true)) {
+            $this->loadRoutesFrom(__DIR__.'/../routes/provisioning.php');
+        }
+
+        $this->publishes([
+            __DIR__.'/../config/nevento-provisioning.php' => config_path('nevento-provisioning.php'),
+        ], 'nevento-provisioning-config');
     }
 
     public function register(): void
     {
+        $this->mergeConfigFrom(__DIR__.'/../config/nevento-provisioning.php', 'nevento-provisioning');
+
         $this->app->singleton(IdentitySyncService::class);
     }
 }

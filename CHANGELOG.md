@@ -2,6 +2,28 @@
 
 All notable changes to this package will be documented here.
 
+## [1.2.0] — 2026-07-07
+
+Additive only — no changes to the OAuth/Socialite surface. Existing consumers are
+unaffected unless they opt into the new provisioning module.
+
+### Added
+- **Tenant-provisioning contract** so client apps expose a consistent internal
+  provisioning API for the Nevento IDP instead of hand-rolling it:
+  - `Contracts\TenantProvisioner` — interface the host app binds
+    (`install`/`suspend`/`unsuspend`/`uninstall`/`status`). The package owns
+    transport, auth and validation; the app supplies the real behaviour.
+  - `Http\Middleware\VerifyProvisioningSecret` — fail-closed Bearer auth against
+    the per-app shared secret (`config('nevento-provisioning.secret')`,
+    env `APP_PROVISIONING_SECRET`).
+  - `Http\Controllers\ProvisioningController` + `routes/provisioning.php` —
+    stateless `/internal/health` and
+    `/internal/tenants/{install,suspend,unsuspend,uninstall,status}` routes (no
+    web/session/CSRF/tenancy). Registered automatically; opt out with
+    `NEVENTO_PROVISIONING_ENABLED=false`.
+  - `config/nevento-provisioning.php` — publishable via tag
+    `nevento-provisioning-config`.
+
 ## [1.1.0] — 2026-07-06
 
 Additive only — fully backward compatible with 1.0.x for existing single-workspace
