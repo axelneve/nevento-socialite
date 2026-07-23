@@ -48,5 +48,10 @@ class NeventoServiceProvider extends ServiceProvider
         $this->mergeConfigFrom(__DIR__.'/../config/nevento-provisioning.php', 'nevento-provisioning');
 
         $this->app->singleton(IdentitySyncService::class);
+
+        // Host apps with their own OAuthController/session-key conventions
+        // (different config namespace, different token session keys) can
+        // override this binding in their own service provider.
+        $this->app->singleton(IdpClient::class);
     }
 }

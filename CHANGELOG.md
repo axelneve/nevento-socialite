@@ -2,6 +2,20 @@
 
 All notable changes to this package will be documented here.
 
+## [1.3.0] — 2026-07-23
+
+Additive only — no changes to existing classes' public behaviour.
+
+### Added
+- `IdpClient` — generic HTTP client for calling the IDP's API with the session's
+  SSO token, with automatic refresh-token retry on 401. Extracted from duplicated
+  copies in `nevento-console` and `rento`/`myoffice`. Session key names and config
+  namespace are constructor-configurable (defaults match this package's own
+  `services.nevento.*` convention); host apps with different conventions can
+  override the `IdpClient::class` binding in their own service provider.
+- Registered as a container singleton by `NeventoServiceProvider` — resolvable via
+  type-hint injection with no per-app setup needed for apps using the defaults.
+
 ## [1.2.0] — 2026-07-07
 
 Additive only — no changes to the OAuth/Socialite surface. Existing consumers are
