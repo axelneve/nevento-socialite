@@ -2,6 +2,39 @@
 
 All notable changes to this package will be documented here.
 
+## [1.4.0] — 2026-09-08
+
+### Added
+- **Back-channel single logout.** `POST /internal/sessions/logout` ends this app's
+  sessions when a user signs out of the IDP. Previously an IDP logout left every app
+  session running until it expired on its own. Rides the existing provisioning channel
+  (per-app Bearer secret); the IDP's signed `logout_token` is accepted alongside it so
+  an app can verify the call against the IDP's JWKS. Requires the database session
+  driver to be able to end sessions remotely.
+- A test suite (orchestra/testbench). The package had none.
+
+### Fixed
+- **A failed OAuth `state` check no longer falls back to `stateless()`.** That turned
+  the CSRF protection into "try again without it". A mismatch now restarts the flow
+  once, then reports the error rather than looping.
+- **`IdentitySyncService` matches on `idp_id` first, not email.** Changing an email
+  address at the IDP forked a second local account and orphaned everything attached to
+  the first. Email is still used as a fallback so accounts predating `idp_id` are
+  adopted rather than duplicated. Where an install already holds forked rows, the most
+  recently updated one wins — that is the account the person has actually been signing
+  into, and moving them to a dormant duplicate would look like their data vanished.
+- **`nevento:duplicate-identities`** finds accounts forked by the old matching (several
+  rows sharing one `idp_id`). Reports by default; `--fix` clears `idp_id` on the stale
+  rows so they stop competing for the identity. It deliberately does not delete rows or
+  reassign related records — what those mean is specific to each app, and guessing
+  would quietly corrupt data. **Run this once after upgrading.**
+- **`RequireWorkspaceAccess` records the intended URL.** It used
+  `redirect()->route()`, which stores nothing, so every deep link landed on the
+  dashboard after signing in.
+- **The post-login target is read from `services.nevento.redirect_after_login`.** It
+  read `nevento.redirect_after_login`, a config file this package never publishes and
+  no app ships, so it silently always returned `/admin`. The old key still works.
+
 ## [1.3.0] — 2026-07-23
 
 Additive only — no changes to existing classes' public behaviour.

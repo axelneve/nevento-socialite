@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace EventSolutions\NeventoSocialite;
 
+use EventSolutions\NeventoSocialite\Console\FindDuplicateIdentitiesCommand;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Socialite\Facades\Socialite;
 
@@ -11,6 +12,10 @@ class NeventoServiceProvider extends ServiceProvider
 {
     public function boot(): void
     {
+        if ($this->app->runningInConsole()) {
+            $this->commands([FindDuplicateIdentitiesCommand::class]);
+        }
+
         Socialite::extend('nevento', function ($app) {
             $config = $app['config']->get('services.nevento', []);
 

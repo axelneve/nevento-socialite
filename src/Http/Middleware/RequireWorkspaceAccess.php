@@ -15,7 +15,10 @@ class RequireWorkspaceAccess
     public function handle(Request $request, Closure $next, string ...$roles): Response
     {
         if (! Auth::check()) {
-            return redirect()->route('nevento.redirect');
+            // guest(), not route(): it records url.intended, so the callback can send
+            // the user back to the page they actually asked for instead of the
+            // dashboard. A plain redirect silently drops every deep link.
+            return redirect()->guest(route('nevento.redirect'));
         }
 
         $workspace = session('nevento_workspace');
@@ -24,7 +27,9 @@ class RequireWorkspaceAccess
             Auth::logout();
             $request->session()->invalidate();
 
-            return redirect()->route('nevento.redirect')
+            // invalidate() first, then guest(): the intended URL has to be written to
+            // the fresh session, or it goes out with the old one.
+            return redirect()->guest(route('nevento.redirect'))
                 ->withErrors(['auth' => 'Je sessie is verlopen. Log opnieuw in.']);
         }
 
