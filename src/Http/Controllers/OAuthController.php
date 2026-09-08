@@ -18,6 +18,9 @@ use Laravel\Socialite\Two\InvalidStateException;
 
 class OAuthController extends Controller
 {
+    /** Marks that a state mismatch has already been retried once this session. */
+    private const RESTARTED_KEY = 'nevento_state_restarted';
+
     public function __construct(private readonly IdentitySyncService $sync) {}
 
     public function redirect(): RedirectResponse
@@ -39,11 +42,11 @@ class OAuthController extends Controller
         try {
             $remoteUser = $driver->user();
         } catch (InvalidStateException) {
-            try {
-                $remoteUser = $this->driver()->stateless()->user();
-            } catch (\Throwable $e) {
-                return $this->errorView('invalid_state', 'Je inlogsessie is verlopen. Start het inloggen opnieuw.');
-            }
+            // Previously this retried with ->stateless(), which turns a failed CSRF
+            // state check into "try again without the check" — exactly what state is
+            // there to prevent. A mismatch nearly always means the session did not
+            // survive the round trip, so restart the flow instead of downgrading it.
+            return $this->restartAfterInvalidState($request);
         } catch (ClientException $e) {
             $body   = (string) $e->getResponse()?->getBody();
             $parsed = json_decode($body, true);
@@ -63,7 +66,40 @@ class OAuthController extends Controller
 
         Auth::login($user, remember: true);
 
-        return redirect()->intended(config('nevento.redirect_after_login', '/admin'));
+        $request->session()->forget(self::RESTARTED_KEY);
+
+        return redirect()->intended($this->redirectAfterLogin());
+    }
+
+    /**
+     * A state mismatch is recoverable — the user simply needs a fresh flow — but only
+     * once. Retrying blindly would bounce a genuinely broken session forever.
+     */
+    private function restartAfterInvalidState(Request $request): RedirectResponse|Response
+    {
+        if ($request->session()->pull(self::RESTARTED_KEY, false)) {
+            return $this->errorView(
+                'invalid_state',
+                'Je inlogsessie is verlopen. Controleer of cookies zijn toegestaan en probeer opnieuw.'
+            );
+        }
+
+        $request->session()->put(self::RESTARTED_KEY, true);
+
+        return redirect()->route('nevento.redirect');
+    }
+
+    /**
+     * `config('nevento.redirect_after_login')` read a config file this package never
+     * publishes and no app ships, so it silently always returned '/admin'. The real
+     * key lives with the rest of the package config; the old one is still honoured.
+     */
+    private function redirectAfterLogin(): string
+    {
+        return (string) config(
+            'services.nevento.redirect_after_login',
+            config('nevento.redirect_after_login', '/admin')
+        );
     }
 
     public function logout(Request $request): RedirectResponse

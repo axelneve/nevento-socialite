@@ -7,10 +7,15 @@ namespace EventSolutions\NeventoSocialite;
 use EventSolutions\NeventoSocialite\Contracts\SyncsWorkspaceRoles;
 use EventSolutions\NeventoSocialite\Exceptions\WorkspaceAccessDeniedException;
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Schema;
 use Laravel\Socialite\Contracts\User as SocialiteUser;
 
 class IdentitySyncService
 {
+    /** @var array<class-string, bool> */
+    private static array $idpIdColumnCache = [];
+
     /**
      * Sync IDP user data to the local User model and session.
      *
@@ -39,17 +44,14 @@ class IdentitySyncService
         $workspaces   = array_values(array_filter((array) ($rawUser['workspaces'] ?? []), 'is_array'));
         $license      = $workspace['license'] ?? $rawUser['license'] ?? null;
 
-        $modelClass = config('auth.providers.users.model', \App\Models\User::class);
+        $user = $this->resolveUser($email, $idpId);
 
-        /** @var \Illuminate\Database\Eloquent\Model $user */
-        $user = $modelClass::updateOrCreate(
-            ['email' => $email],
-            [
-                'name'           => $name,
-                'idp_id'         => $idpId,
-                'workspace_role' => $role,
-            ]
-        );
+        $user->forceFill([
+            'name'           => $name,
+            'email'          => $email,
+            'idp_id'         => $idpId,
+            'workspace_role' => $role,
+        ])->save();
 
         session([
             'nevento_user'             => ['id' => $idpId, 'name' => $name, 'email' => $email],
@@ -67,6 +69,48 @@ class IdentitySyncService
         $this->syncRoles($user, $roles, $workspace);
 
         return $user;
+    }
+
+    /**
+     * Find the local user for this identity.
+     *
+     * The IdP id is the stable key; email is not. Matching on email alone meant that
+     * changing an address at the IdP created a second local account and orphaned
+     * everything attached to the first. Email is still used as a fallback so accounts
+     * that predate an idp_id are adopted rather than duplicated.
+     */
+    private function resolveUser(string $email, mixed $idpId): Model
+    {
+        $modelClass = config('auth.providers.users.model', \App\Models\User::class);
+
+        if ($idpId !== null && $idpId !== '' && $this->hasIdpIdColumn($modelClass)) {
+            $byIdpId = $modelClass::query()->where('idp_id', $idpId)->first();
+
+            if ($byIdpId instanceof Model) {
+                return $byIdpId;
+            }
+        }
+
+        return $modelClass::query()->where('email', $email)->first() ?? new $modelClass;
+    }
+
+    /**
+     * Cached per class: this runs on every sign-in, and a schema lookup per request is
+     * a needless round trip.
+     *
+     * @param  class-string  $modelClass
+     */
+    private function hasIdpIdColumn(string $modelClass): bool
+    {
+        if (! array_key_exists($modelClass, self::$idpIdColumnCache)) {
+            /** @var Model $instance */
+            $instance = new $modelClass;
+
+            self::$idpIdColumnCache[$modelClass] = Schema::connection($instance->getConnectionName())
+                ->hasColumn($instance->getTable(), 'idp_id');
+        }
+
+        return self::$idpIdColumnCache[$modelClass];
     }
 
     /**

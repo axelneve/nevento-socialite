@@ -110,6 +110,12 @@ Each connection maps to one website backend (one `NEVENTO_CLIENT_ID` / `NEVENTO_
     'stateless'     => env('NEVENTO_STATELESS', false),
     'scopes'        => ['openid', 'profile', 'email', 'workspaces:read'],
     'load_routes'   => true,
+    // Where to send the user after a successful sign-in, when no intended URL
+    // was recorded. Defaults to '/admin'.
+    'redirect_after_login' => '/admin',
+    // Set so logging out here also ends the IDP session; without it "log out"
+    // only clears the local session and the next click signs the user back in.
+    'logout_url'    => env('NEVENTO_LOGOUT_URL', 'https://idp.nevento.nl/sso/logout'),
 ],
 ```
 
@@ -363,7 +369,8 @@ Browser → /auth/redirect
     → IDP /api/user     (Bearer token — IDP reads client's workspace_id + app_id
                           from the token record and returns only that workspace)
     → IdentitySyncService::sync()
-        → upserts User (email key), sets idp_id + workspace_role
+        → upserts User (matched on idp_id, falling back to email), sets
+          idp_id + workspace_role
         → writes nevento_* session keys
     → Auth::login($user)
     → redirect()->intended('/admin')
