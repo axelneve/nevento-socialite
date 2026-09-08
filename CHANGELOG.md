@@ -2,6 +2,14 @@
 
 All notable changes to this package will be documented here.
 
+## [1.4.1] — 2026-09-08
+
+### Fixed
+- `nevento:duplicate-identities` now checks `idp_user_id` as well as `idp_id`. Rento,
+  myOffice and kasso key on the former, so the command errored out on more than half
+  the fleet. An app with neither column is reported rather than failed — not every app
+  links local users to an IDP identity.
+
 ## [1.4.0] — 2026-09-08
 
 ### Added

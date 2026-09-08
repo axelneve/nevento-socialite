@@ -24,7 +24,7 @@ use Illuminate\Support\Facades\Schema;
  */
 class FindDuplicateIdentitiesCommand extends Command
 {
-    protected $signature = 'nevento:duplicate-identities {--fix : Clear idp_id on the non-canonical rows}';
+    protected $signature = 'nevento:duplicate-identities {--fix : Clear the identity column on the non-canonical rows}';
 
     protected $description = 'Find local accounts forked by the pre-1.4.0 email-keyed identity matching';
 
@@ -36,19 +36,27 @@ class FindDuplicateIdentitiesCommand extends Command
         $table = $instance->getTable();
         $key = $instance->getKeyName();
 
-        if (! Schema::hasColumn($table, 'idp_id')) {
-            $this->components->error("Table [{$table}] has no idp_id column; nothing to check.");
+        // Apps disagree on the column: this package's own IdentitySyncService writes
+        // idp_id, while the hand-rolled ones (rento, myOffice, kasso) use idp_user_id.
+        $column = collect(['idp_id', 'idp_user_id'])
+            ->first(fn (string $candidate): bool => Schema::hasColumn($table, $candidate));
 
-            return self::FAILURE;
+        if ($column === null) {
+            $this->components->info(
+                "Table [{$table}] has neither an idp_id nor an idp_user_id column, so no local "
+                .'account is keyed to an IDP identity here. Nothing to check.'
+            );
+
+            return self::SUCCESS;
         }
 
         $duplicated = DB::table($table)
-            ->select('idp_id')
-            ->whereNotNull('idp_id')
-            ->where('idp_id', '!=', '')
-            ->groupBy('idp_id')
+            ->select($column)
+            ->whereNotNull($column)
+            ->where($column, '!=', '')
+            ->groupBy($column)
             ->havingRaw('COUNT(*) > 1')
-            ->pluck('idp_id');
+            ->pluck($column);
 
         if ($duplicated->isEmpty()) {
             $this->components->info('No duplicate identities found.');
@@ -60,7 +68,7 @@ class FindDuplicateIdentitiesCommand extends Command
 
         foreach ($duplicated as $idpId) {
             $rows = DB::table($table)
-                ->where('idp_id', $idpId)
+                ->where($column, $idpId)
                 // Same order IdentitySyncService resolves with, so "canonical" here
                 // means the row a sign-in would actually land on.
                 ->orderByDesc('updated_at')
@@ -71,7 +79,7 @@ class FindDuplicateIdentitiesCommand extends Command
             $stale = $rows->skip(1);
 
             $this->components->twoColumnDetail(
-                "<fg=yellow>idp_id {$idpId}</>",
+                "<fg=yellow>{$column} {$idpId}</>",
                 $stale->count().' stale row(s)'
             );
 
@@ -90,7 +98,7 @@ class FindDuplicateIdentitiesCommand extends Command
             if ($this->option('fix')) {
                 $cleared += DB::table($table)
                     ->whereIn($key, $stale->pluck($key)->all())
-                    ->update(['idp_id' => null]);
+                    ->update([$column => null]);
             }
         }
 
@@ -98,14 +106,14 @@ class FindDuplicateIdentitiesCommand extends Command
 
         if (! $this->option('fix')) {
             $this->components->warn(
-                'Nothing changed. Re-run with --fix to clear idp_id on the stale rows. '
+                'Nothing changed. Re-run with --fix to clear the identity column on the stale rows. '
                 .'Records attached to them are left alone — reassigning those is specific to this app.'
             );
 
             return self::SUCCESS;
         }
 
-        $this->components->info("Cleared idp_id on {$cleared} stale row(s).");
+        $this->components->info("Cleared {$column} on {$cleared} stale row(s).");
         $this->components->warn('Records still attached to those rows were not moved; reconcile them before deleting anything.');
 
         return self::SUCCESS;
