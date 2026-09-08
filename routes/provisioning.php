@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use EventSolutions\NeventoSocialite\Http\Controllers\BackChannelLogoutController;
 use EventSolutions\NeventoSocialite\Http\Controllers\ProvisioningController;
 use EventSolutions\NeventoSocialite\Http\Middleware\VerifyProvisioningSecret;
 use Illuminate\Support\Facades\Route;
@@ -25,4 +26,9 @@ Route::middleware([VerifyProvisioningSecret::class])->group(function (): void {
         ->name('nevento.provisioning.uninstall');
     Route::get('/internal/tenants/status/{tenant_key}', [ProvisioningController::class, 'status'])
         ->name('nevento.provisioning.status');
+
+    // Single logout: the IDP calls this when a user signs out centrally, so this
+    // app's sessions end too rather than running on until they expire.
+    Route::post('/internal/sessions/logout', BackChannelLogoutController::class)
+        ->name('nevento.provisioning.logout');
 });
