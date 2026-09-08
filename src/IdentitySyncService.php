@@ -84,7 +84,16 @@ class IdentitySyncService
         $modelClass = config('auth.providers.users.model', \App\Models\User::class);
 
         if ($idpId !== null && $idpId !== '' && $this->hasIdpIdColumn($modelClass)) {
-            $byIdpId = $modelClass::query()->where('idp_id', $idpId)->first();
+            // Ordered, not just first(): installs that ran the old email-keyed matching
+            // can already hold several rows for one identity. The most recently updated
+            // one is the account the person has actually been signing into, so keep
+            // them there rather than silently moving them to a dormant duplicate.
+            // `nevento:duplicate-identities` finds and neutralises the leftovers.
+            $byIdpId = $modelClass::query()
+                ->where('idp_id', $idpId)
+                ->orderByDesc('updated_at')
+                ->orderByDesc($this->keyName($modelClass))
+                ->first();
 
             if ($byIdpId instanceof Model) {
                 return $byIdpId;
@@ -92,6 +101,17 @@ class IdentitySyncService
         }
 
         return $modelClass::query()->where('email', $email)->first() ?? new $modelClass;
+    }
+
+    /**
+     * @param  class-string  $modelClass
+     */
+    private function keyName(string $modelClass): string
+    {
+        /** @var Model $instance */
+        $instance = new $modelClass;
+
+        return $instance->getKeyName();
     }
 
     /**

@@ -20,7 +20,14 @@ All notable changes to this package will be documented here.
 - **`IdentitySyncService` matches on `idp_id` first, not email.** Changing an email
   address at the IDP forked a second local account and orphaned everything attached to
   the first. Email is still used as a fallback so accounts predating `idp_id` are
-  adopted rather than duplicated.
+  adopted rather than duplicated. Where an install already holds forked rows, the most
+  recently updated one wins — that is the account the person has actually been signing
+  into, and moving them to a dormant duplicate would look like their data vanished.
+- **`nevento:duplicate-identities`** finds accounts forked by the old matching (several
+  rows sharing one `idp_id`). Reports by default; `--fix` clears `idp_id` on the stale
+  rows so they stop competing for the identity. It deliberately does not delete rows or
+  reassign related records — what those mean is specific to each app, and guessing
+  would quietly corrupt data. **Run this once after upgrading.**
 - **`RequireWorkspaceAccess` records the intended URL.** It used
   `redirect()->route()`, which stores nothing, so every deep link landed on the
   dashboard after signing in.
