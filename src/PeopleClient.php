@@ -35,6 +35,8 @@ class PeopleClient
 
     private const EXPIRY_SKEW_SECONDS = 30;
 
+    private const MANAGING_APP_TTL_SECONDS = 300;
+
     private string $baseUrl;
 
     public function __construct(
@@ -68,6 +70,22 @@ class PeopleClient
         } while ($page++ < $last);
 
         return $people;
+    }
+
+    /**
+     * The slug of the app that manages the workspace's people (`myoffice` else `rento`), or null
+     * when none is active. The rule lives in the IDP, so an app asks instead of repeating it: its
+     * form is editable when this is the app itself and read-only otherwise. Cached for a few
+     * minutes, because a form asks on every page view and the answer changes only when an app is
+     * installed or removed.
+     */
+    public function managingApp(int $workspaceId): ?string
+    {
+        return Cache::remember(
+            'nevento.people.managing_app.'.md5($this->baseUrl.$workspaceId),
+            self::MANAGING_APP_TTL_SECONDS,
+            fn (): ?string => ($slug = $this->send(fn (PendingRequest $request) => $request->get($this->url($workspaceId, 'managing-app')))->json('data.slug')) !== null ? (string) $slug : null,
+        );
     }
 
     /**

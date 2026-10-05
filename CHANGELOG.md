@@ -2,6 +2,12 @@
 
 All notable changes to this package will be documented here.
 
+## [1.5.1] — 2026-10-05
+
+### Added
+- `PeopleClient::managingApp($workspaceId)`: which app manages the workspace's people, asked of
+  the IDP (which owns the "myOffice first" rule) and cached for five minutes.
+
 ## [1.5.0] — 2026-10-05
 
 Additive only — nothing existing changes.

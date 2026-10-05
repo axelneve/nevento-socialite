@@ -81,6 +81,30 @@ class PeopleClientTest extends TestCase
     }
 
     #[Test]
+    public function it_asks_the_idp_who_manages_the_workspace_and_caches_the_answer(): void
+    {
+        Http::fake($this->token() + [
+            'https://idp.test/api/v1/workspaces/7/people/managing-app' => Http::response(['data' => ['slug' => 'myoffice']]),
+        ]);
+
+        $this->assertSame('myoffice', $this->client()->managingApp(7));
+        $this->assertSame('myoffice', $this->client()->managingApp(7));
+
+        // One real call for two asks: a form asks on every page view.
+        $this->assertCount(1, Http::recorded(fn (Request $request): bool => str_ends_with($request->url(), '/managing-app')));
+    }
+
+    #[Test]
+    public function no_managing_app_is_null(): void
+    {
+        Http::fake($this->token() + [
+            'https://idp.test/api/v1/workspaces/7/people/managing-app' => Http::response(['data' => null]),
+        ]);
+
+        $this->assertNull($this->client()->managingApp(7));
+    }
+
+    #[Test]
     public function a_refusal_throws_with_the_status_and_the_field_errors(): void
     {
         Http::fake($this->token() + [
