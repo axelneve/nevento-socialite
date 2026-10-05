@@ -2,6 +2,22 @@
 
 All notable changes to this package will be documented here.
 
+## [1.5.0] — 2026-10-05
+
+Additive only — nothing existing changes.
+
+### Added
+- **People register, app side** (nevento-idp `personen-register.md`, P2).
+  - `Contracts\SyncsPeople`: an app implements `sync($workspaceId, $uuids)` to store its
+    read-only copy of the register.
+  - `POST /internal/people/changed`: the IDP's "these people changed" push, on the same
+    provisioning-secret channel. Carries ids only. Answers 404 until the app binds
+    `SyncsPeople`, so apps can upgrade before they take part.
+  - `PeopleClient`: lists (all pages, `updated_since` for the daily reconcile), creates and
+    updates people at the IDP, authenticating as the app with a cached `client_credentials`
+    token (`people:read people:write`). `PeopleClientException` carries the status and the
+    field errors of a 422.
+
 ## [1.4.1] — 2026-09-08
 
 ### Fixed

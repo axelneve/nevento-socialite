@@ -249,6 +249,38 @@ Post to the `nevento.logout` route. If `services.nevento.logout_url` is set, the
 
 ---
 
+## People register
+
+nevento-idp holds the people register (one person per workspace, with a `uuid`; see the
+IDP's `.claude/specs/personen-register.md`). An app keeps a **read-only copy** of the
+fields it is allowed to see and never edits that copy locally.
+
+**Receiving changes.** Implement `SyncsPeople` and bind it. The package registers
+`POST /internal/people/changed` (same Bearer secret as the other internal routes) and calls
+`sync($workspaceId, $uuids)`; the call carries ids only, no personal data. Until a
+binding exists the route answers 404, which the IDP reads as "this app does not take part yet".
+
+```php
+$this->app->bind(\EventSolutions\NeventoSocialite\Contracts\SyncsPeople::class, MyPeopleSync::class);
+```
+
+**Reading and writing.** `PeopleClient` authenticates as the app (a `client_credentials`
+token, cached), so it works from queued jobs and the daily reconcile:
+
+```php
+$people = app(PeopleClient::class)->list($workspaceId, updatedSince: $yesterday); // the reconcile
+$person = app(PeopleClient::class)->create($workspaceId, ['name' => 'Sam', 'email' => 'sam@x.test']);
+$person = app(PeopleClient::class)->update($workspaceId, $person['uuid'], ['active' => false]);
+```
+
+Only the workspace's managing app (myOffice, else rento) may write; any other app gets a
+`PeopleClientException` with status 403. A 422 carries the field messages in `->errors`,
+for example the email already being taken in the workspace. The IDP filters the fields per
+app, so never assume one is present. An app with another config namespace binds its own
+`PeopleClient` with its config keys, like `IdpClient`.
+
+---
+
 ## Session keys
 
 After a successful login the following session keys are written:

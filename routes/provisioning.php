@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use EventSolutions\NeventoSocialite\Http\Controllers\BackChannelLogoutController;
+use EventSolutions\NeventoSocialite\Http\Controllers\PeopleChangedController;
 use EventSolutions\NeventoSocialite\Http\Controllers\ProvisioningController;
 use EventSolutions\NeventoSocialite\Http\Middleware\VerifyProvisioningSecret;
 use Illuminate\Support\Facades\Route;
@@ -31,4 +32,9 @@ Route::middleware([VerifyProvisioningSecret::class])->group(function (): void {
     // app's sessions end too rather than running on until they expire.
     Route::post('/internal/sessions/logout', BackChannelLogoutController::class)
         ->name('nevento.provisioning.logout');
+
+    // People register: the IDP says which people changed (uuids only); the app fetches
+    // them itself. 404 until the app binds a SyncsPeople implementation.
+    Route::post('/internal/people/changed', PeopleChangedController::class)
+        ->name('nevento.provisioning.people-changed');
 });
