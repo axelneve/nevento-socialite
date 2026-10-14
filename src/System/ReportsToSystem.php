@@ -4,13 +4,10 @@ declare(strict_types=1);
 
 namespace EventSolutions\NeventoSocialite\System;
 
-use Cron\CronExpression;
-use Illuminate\Console\Events\CommandFinished;
 use Illuminate\Console\Events\ScheduledTaskFailed;
 use Illuminate\Console\Events\ScheduledTaskFinished;
 use Illuminate\Console\Scheduling\CallbackEvent;
 use Illuminate\Console\Scheduling\Event as ScheduledEvent;
-use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Events\Dispatcher;
 use Illuminate\Log\Events\MessageLogged;
 use Illuminate\Queue\Events\JobFailed;
@@ -22,9 +19,8 @@ use Throwable;
  * Turns what happens in the app into reports for nevento-system.
  *
  *  - A scheduled task that ran: one app-wide heartbeat, with its expected cadence read from its cron expression.
- *  - A command that ran for one tenant (apps schedule per-tenant work as `tenants:run <command>`, and that wrapper
- *    reports success even when the command failed inside a tenant): one heartbeat for that tenant, from the command's
- *    own exit code. This is what makes a failure for one workspace visible.
+ *    (Per-tenant results come from {@see TenantsRunCommand}, because stancl's `tenants:run` fires no events and hides
+ *    the exit code of the command it runs.)
  *  - A failed queue job, and a mail that could not be sent: a signal.
  *
  * Every listener swallows its own errors: reporting must never break the app.
@@ -37,7 +33,6 @@ class ReportsToSystem
     {
         $events->listen(ScheduledTaskFinished::class, $this->guarded($this->scheduledFinished(...)));
         $events->listen(ScheduledTaskFailed::class, $this->guarded($this->scheduledFailed(...)));
-        $events->listen(CommandFinished::class, $this->guarded($this->commandFinished(...)));
         $events->listen(JobFailed::class, $this->guarded($this->jobFailed(...)));
         $events->listen(MessageLogged::class, $this->guarded($this->messageLogged(...)));
     }
@@ -54,7 +49,7 @@ class ReportsToSystem
 
         $this->client->heartbeat(
             $name, $failed ? 'failed' : 'ok', null, (int) round($event->runtime * 1000),
-            $failed ? "exitcode {$event->task->exitCode}" : null, $this->expectedMinutes($event->task),
+            $failed ? "exitcode {$event->task->exitCode}" : null, ScheduleCadence::minutes($event->task),
         );
     }
 
@@ -65,22 +60,7 @@ class ReportsToSystem
             return;
         }
 
-        $this->client->heartbeat($this->taskName($event->task), 'failed', null, null, Str::limit($event->exception->getMessage(), 400, ''), $this->expectedMinutes($event->task));
-    }
-
-    private function commandFinished(CommandFinished $event): void
-    {
-        $tenant = $this->tenantKey();
-        $scheduled = $this->scheduledTenantCommands();
-
-        if ($tenant === null || $event->command === null || ! isset($scheduled[$event->command]) || $this->ignored($event->command)) {
-            return;
-        }
-
-        $this->client->heartbeat(
-            $event->command, $event->exitCode === 0 ? 'ok' : 'failed', $tenant, null,
-            $event->exitCode === 0 ? null : "exitcode {$event->exitCode}", $this->expectedMinutes($scheduled[$event->command]),
-        );
+        $this->client->heartbeat($this->taskName($event->task), 'failed', null, null, Str::limit($event->exception->getMessage(), 400, ''), ScheduleCadence::minutes($event->task));
     }
 
     private function jobFailed(JobFailed $event): void
@@ -115,37 +95,7 @@ class ReportsToSystem
         return $task->description ?: (preg_match('/artisan["\']?\s+(.+)$/', $command, $m) ? trim($m[1], " '\"") : $command);
     }
 
-    private function expectedMinutes(ScheduledEvent $task): ?int
-    {
-        try {
-            $cron = new CronExpression($task->expression);
-            $first = $cron->getNextRunDate(now());
-            $second = $cron->getNextRunDate($first);
-
-            return max(1, (int) round(($second->getTimestamp() - $first->getTimestamp()) / 60));
-        } catch (Throwable) {
-            return null;
-        }
-    }
-
-    /**
-     * The commands the app schedules per tenant (`tenants:run <command>`), with their schedule entry.
-     *
-     * @return array<string, ScheduledEvent>
-     */
-    private function scheduledTenantCommands(): array
-    {
-        $commands = [];
-
-        foreach (app(Schedule::class)->events() as $event) {
-            if (! $event instanceof CallbackEvent && preg_match("/tenants:run\s+([^\s'\"]+)/", (string) $event->command, $m)) {
-                $commands[$m[1]] = $event;
-            }
-        }
-
-        return $commands;
-    }
-
+    /** The active tenant (stancl/tenancy), if the app has tenancy and one is initialized. */
     protected function tenantKey(): ?string
     {
         if (! function_exists('tenancy') || ! function_exists('tenant') || ! tenancy()->initialized) {

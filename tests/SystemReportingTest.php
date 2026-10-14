@@ -6,7 +6,6 @@ namespace EventSolutions\NeventoSocialite\Tests;
 
 use EventSolutions\NeventoSocialite\System\ReportsToSystem;
 use EventSolutions\NeventoSocialite\System\SystemClient;
-use Illuminate\Console\Events\CommandFinished;
 use Illuminate\Console\Events\ScheduledTaskFailed;
 use Illuminate\Console\Events\ScheduledTaskFinished;
 use Illuminate\Console\Scheduling\Schedule;
@@ -14,8 +13,6 @@ use Illuminate\Http\Client\Request;
 use Illuminate\Log\Events\MessageLogged;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
-use Symfony\Component\Console\Input\ArrayInput;
-use Symfony\Component\Console\Output\NullOutput;
 use Symfony\Component\Mailer\Exception\TransportException;
 
 class SystemReportingTest extends TestCase
@@ -136,41 +133,5 @@ class SystemReportingTest extends TestCase
         Event::dispatch(new ScheduledTaskFinished($task, 1.0));
 
         $this->addToAssertionCount(1);
-    }
-
-    public function test_a_scheduled_tenant_command_is_reported_per_tenant_from_its_own_exit_code(): void
-    {
-        Http::fake(['system.test/*' => Http::response('', 204)]);
-        app(Schedule::class)->command('tenants:run people:reconcile')->dailyAt('05:45');
-
-        // A host app in tenant context: stancl's tenancy() says which tenant is active.
-        $reporter = new class(app(SystemClient::class)) extends ReportsToSystem
-        {
-            protected function tenantKey(): ?string
-            {
-                return 'ws-2';
-            }
-        };
-        $reporter->subscribe(app('events'));
-
-        Event::dispatch(new CommandFinished('people:reconcile', new ArrayInput([]), new NullOutput, 1));
-        Event::dispatch(new CommandFinished('people:reconcile', new ArrayInput([]), new NullOutput, 0));
-        Event::dispatch(new CommandFinished('migrate', new ArrayInput([]), new NullOutput, 0));
-
-        Http::assertSentCount(2);
-        Http::assertSent(fn (Request $request) => $request['task'] === 'people:reconcile' && $request['tenant'] === 'ws-2'
-            && $request['status'] === 'failed' && $request['expected_every_minutes'] === 1440);
-        Http::assertSent(fn (Request $request) => $request['tenant'] === 'ws-2' && $request['status'] === 'ok');
-    }
-
-    public function test_outside_a_tenant_a_command_is_not_reported_per_tenant(): void
-    {
-        Http::fake();
-        app(Schedule::class)->command('tenants:run people:reconcile')->dailyAt('05:45');
-        $this->listen(); // no stancl in these tests: no tenant is active
-
-        Event::dispatch(new CommandFinished('people:reconcile', new ArrayInput([]), new NullOutput, 0));
-
-        Http::assertNothingSent();
     }
 }

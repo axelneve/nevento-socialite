@@ -2,6 +2,18 @@
 
 All notable changes to this package will be documented here.
 
+## [1.6.1] — 2026-10-15
+
+### Added
+- `nevento:tenants-run <command>`: a drop-in for stancl's `tenants:run` (same arguments) that reports every tenant's
+  result to nevento-system, carries on with the other tenants when one fails, and exits non-zero when any failed.
+  Use it in the schedule instead of `tenants:run`.
+
+### Fixed
+- 1.6.0 claimed to report per-tenant results from the command's exit code through console events. That cannot work:
+  stancl's `tenants:run` calls the command directly, which fires no events, and it discards the exit code. The event
+  listener for that is removed; `nevento:tenants-run` replaces it.
+
 ## [1.6.0] — 2026-10-15
 
 Additive only, and off until `SYSTEM_TOKEN` is set in the app's environment.

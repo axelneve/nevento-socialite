@@ -7,6 +7,7 @@ namespace EventSolutions\NeventoSocialite;
 use EventSolutions\NeventoSocialite\Console\FindDuplicateIdentitiesCommand;
 use EventSolutions\NeventoSocialite\System\ReportsToSystem;
 use EventSolutions\NeventoSocialite\System\ReportTenantsCommand;
+use EventSolutions\NeventoSocialite\System\TenantsRunCommand;
 use EventSolutions\NeventoSocialite\System\SystemClient;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Contracts\Events\Dispatcher;
@@ -18,7 +19,7 @@ class NeventoServiceProvider extends ServiceProvider
     public function boot(): void
     {
         if ($this->app->runningInConsole()) {
-            $this->commands([FindDuplicateIdentitiesCommand::class, ReportTenantsCommand::class]);
+            $this->commands([FindDuplicateIdentitiesCommand::class, ReportTenantsCommand::class, TenantsRunCommand::class]);
         }
 
         Socialite::extend('nevento', function ($app) {
