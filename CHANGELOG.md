@@ -2,14 +2,14 @@
 
 All notable changes to this package will be documented here.
 
-## [1.6.2] — 2026-10-15
+## [1.6.2] — 2026-10-14
 
 ### Added
 - `System\SystemServiceProvider`: the reporting to nevento-system as a provider of its own. The main provider registers
   it, so nothing changes for apps that use the whole package. An app that must not get the rest (nevento-idp) turns off
   discovery of the package (`extra.laravel.dont-discover`) and registers only this provider.
 
-## [1.6.1] — 2026-10-15
+## [1.6.1] — 2026-10-14
 
 ### Added
 - `nevento:tenants-run <command>`: a drop-in for stancl's `tenants:run` (same arguments) that reports every tenant's
@@ -21,7 +21,7 @@ All notable changes to this package will be documented here.
   stancl's `tenants:run` calls the command directly, which fires no events, and it discards the exit code. The event
   listener for that is removed; `nevento:tenants-run` replaces it.
 
-## [1.6.0] — 2026-10-15
+## [1.6.0] — 2026-10-14
 
 Additive only, and off until `SYSTEM_TOKEN` is set in the app's environment.
 
