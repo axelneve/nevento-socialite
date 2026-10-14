@@ -2,6 +2,13 @@
 
 All notable changes to this package will be documented here.
 
+## [1.6.2] — 2026-10-15
+
+### Added
+- `System\SystemServiceProvider`: the reporting to nevento-system as a provider of its own. The main provider registers
+  it, so nothing changes for apps that use the whole package. An app that must not get the rest (nevento-idp) turns off
+  discovery of the package (`extra.laravel.dont-discover`) and registers only this provider.
+
 ## [1.6.1] — 2026-10-15
 
 ### Added

@@ -5,12 +5,7 @@ declare(strict_types=1);
 namespace EventSolutions\NeventoSocialite;
 
 use EventSolutions\NeventoSocialite\Console\FindDuplicateIdentitiesCommand;
-use EventSolutions\NeventoSocialite\System\ReportsToSystem;
-use EventSolutions\NeventoSocialite\System\ReportTenantsCommand;
-use EventSolutions\NeventoSocialite\System\TenantsRunCommand;
-use EventSolutions\NeventoSocialite\System\SystemClient;
-use Illuminate\Console\Scheduling\Schedule;
-use Illuminate\Contracts\Events\Dispatcher;
+use EventSolutions\NeventoSocialite\System\SystemServiceProvider;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Socialite\Facades\Socialite;
 
@@ -19,7 +14,7 @@ class NeventoServiceProvider extends ServiceProvider
     public function boot(): void
     {
         if ($this->app->runningInConsole()) {
-            $this->commands([FindDuplicateIdentitiesCommand::class, ReportTenantsCommand::class, TenantsRunCommand::class]);
+            $this->commands([FindDuplicateIdentitiesCommand::class]);
         }
 
         Socialite::extend('nevento', function ($app) {
@@ -49,32 +44,16 @@ class NeventoServiceProvider extends ServiceProvider
             $this->loadRoutesFrom(__DIR__.'/../routes/provisioning.php');
         }
 
-        $this->bootSystemReporting();
-
         $this->publishes([
             __DIR__.'/../config/nevento-provisioning.php' => config_path('nevento-provisioning.php'),
         ], 'nevento-provisioning-config');
     }
 
-    /** Reporting to nevento-system: only when SYSTEM_TOKEN is set, so installing the package changes nothing by itself. */
-    private function bootSystemReporting(): void
-    {
-        if (! $this->app->make(SystemClient::class)->enabled()) {
-            return;
-        }
-
-        $this->app->make(ReportsToSystem::class)->subscribe($this->app->make(Dispatcher::class));
-
-        if (config('nevento-system.report_tenants', true) && class_exists(\Stancl\Tenancy\Tenancy::class)) {
-            $this->callAfterResolving(Schedule::class, fn (Schedule $schedule) => $schedule->command('nevento:system-report-tenants')->hourly()->withoutOverlapping());
-        }
-    }
-
     public function register(): void
     {
-        $this->mergeConfigFrom(__DIR__.'/../config/nevento-system.php', 'nevento-system');
-        $this->app->singleton(SystemClient::class);
-        $this->app->singleton(ReportsToSystem::class);
+        // Reporting to nevento-system lives in its own provider, so an app that must not get the rest of the package
+        // (nevento-idp) can register just that one. Registering it twice is harmless.
+        $this->app->register(SystemServiceProvider::class);
 
         $this->mergeConfigFrom(__DIR__.'/../config/nevento-provisioning.php', 'nevento-provisioning');
 
