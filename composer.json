@@ -1,7 +1,7 @@
 {
     "name": "eventsolutions/nevento-socialite",
     "description": "Nevento IDP OAuth2 Socialite driver + tenant-provisioning contract for EventSolutions client website backends",
-    "version": "1.6.2",
+    "version": "1.6.3",
     "type": "library",
     "license": "proprietary",
     "require": {
@@ -25,7 +25,8 @@
     "prefer-stable": true,
     "require-dev": {
         "orchestra/testbench": "^11.2",
-        "phpunit/phpunit": "^13.3"
+        "phpunit/phpunit": "^13.3",
+        "spatie/laravel-backup": "^10"
     },
     "autoload-dev": {
         "psr-4": {

@@ -13,6 +13,8 @@ use Illuminate\Http\Client\Request;
 use Illuminate\Log\Events\MessageLogged;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
+use Spatie\Backup\Events\BackupHasFailed;
+use Spatie\Backup\Events\BackupWasSuccessful;
 use Symfony\Component\Mailer\Exception\TransportException;
 
 class SystemReportingTest extends TestCase
@@ -121,6 +123,30 @@ class SystemReportingTest extends TestCase
 
         Http::assertSentCount(1);
         Http::assertSent(fn (Request $request) => str_ends_with($request->url(), '/signals') && $request['kind'] === 'mail_failure');
+    }
+
+    public function test_a_failed_backup_is_reported_with_its_reason_and_a_success_closes_it(): void
+    {
+        Http::fake(['system.test/*' => Http::response('', 204)]);
+        $this->listen();
+
+        Event::dispatch(new BackupHasFailed(new \RuntimeException('S3 AccessDenied'), 'backup', 'Rento-tenant-x'));
+        Event::dispatch(new BackupWasSuccessful('backup', 'Rento-tenant-x'));
+
+        Http::assertSentCount(2);
+        Http::assertSent(fn (Request $request) => str_ends_with($request->url(), '/signals') && $request['kind'] === 'backup_failed'
+            && $request['tenant'] === 'Rento-tenant-x' && $request['message'] === 'S3 AccessDenied');
+        Http::assertSent(fn (Request $request) => $request['kind'] === 'backup_ok' && $request['tenant'] === 'Rento-tenant-x');
+    }
+
+    public function test_a_failed_backup_without_a_name_is_still_reported(): void
+    {
+        Http::fake(['system.test/*' => Http::response('', 204)]);
+        $this->listen();
+
+        Event::dispatch(new BackupHasFailed(new \RuntimeException('boom')));
+
+        Http::assertSent(fn (Request $request) => $request['kind'] === 'backup_failed' && $request['tenant'] === 'backup');
     }
 
     public function test_a_listener_that_blows_up_does_not_reach_the_app(): void

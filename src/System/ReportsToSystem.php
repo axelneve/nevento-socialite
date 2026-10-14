@@ -12,6 +12,8 @@ use Illuminate\Events\Dispatcher;
 use Illuminate\Log\Events\MessageLogged;
 use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Support\Str;
+use Spatie\Backup\Events\BackupHasFailed;
+use Spatie\Backup\Events\BackupWasSuccessful;
 use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 use Throwable;
 
@@ -22,6 +24,7 @@ use Throwable;
  *    (Per-tenant results come from {@see TenantsRunCommand}, because stancl's `tenants:run` fires no events and hides
  *    the exit code of the command it runs.)
  *  - A failed queue job, and a mail that could not be sent: a signal.
+ *  - A backup run that failed (with the reason) or succeeded, when the app uses spatie/laravel-backup: a signal.
  *
  * Every listener swallows its own errors: reporting must never break the app.
  */
@@ -35,6 +38,24 @@ class ReportsToSystem
         $events->listen(ScheduledTaskFailed::class, $this->guarded($this->scheduledFailed(...)));
         $events->listen(JobFailed::class, $this->guarded($this->jobFailed(...)));
         $events->listen(MessageLogged::class, $this->guarded($this->messageLogged(...)));
+
+        // spatie/laravel-backup, when the app has it (listening for an event of a package that is not installed is harmless).
+        $events->listen(BackupHasFailed::class, $this->guarded($this->backupFailed(...)));
+        $events->listen(BackupWasSuccessful::class, $this->guarded($this->backupSucceeded(...)));
+    }
+
+    /**
+     * A backup run that failed, with the reason. The signal's `tenant` field holds the backup's name (an app has several: central, one per
+     * tenant); the system keeps the alert open until the next success of that same backup.
+     */
+    private function backupFailed(BackupHasFailed $event): void
+    {
+        $this->client->signal('backup_failed', $event->backupName ?? 'backup', Str::limit($event->exception->getMessage(), 400, ''));
+    }
+
+    private function backupSucceeded(BackupWasSuccessful $event): void
+    {
+        $this->client->signal('backup_ok', $event->backupName);
     }
 
     private function scheduledFinished(ScheduledTaskFinished $event): void

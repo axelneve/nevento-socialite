@@ -2,6 +2,12 @@
 
 All notable changes to this package will be documented here.
 
+## [1.6.3] — 2026-10-14
+
+### Added
+- Backup results to nevento-system, for apps with spatie/laravel-backup: a failed run (`BackupHasFailed`) is reported at once
+  with its reason, a successful one (`BackupWasSuccessful`) closes it. The signal's `tenant` field holds the backup's name.
+
 ## [1.6.2] — 2026-10-14
 
 ### Added
