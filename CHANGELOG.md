@@ -2,6 +2,20 @@
 
 All notable changes to this package will be documented here.
 
+## [1.6.0] — 2026-10-15
+
+Additive only, and off until `SYSTEM_TOKEN` is set in the app's environment.
+
+### Added
+- Reporting to nevento-system (system.nevento.nl), see `config/nevento-system.php`: a heartbeat for every scheduled
+  task (with its expected cadence), a heartbeat per tenant for commands scheduled as `tenants:run <command>` (from
+  the command's own exit code, because `tenants:run` itself succeeds even when the command fails inside a tenant),
+  a signal for every failed queue job and every mail the transport could not send, and an hourly
+  `nevento:system-report-tenants` (tenant database reachable, pending tenant migrations; scheduled automatically
+  when stancl/tenancy is installed).
+- Reporting never breaks the app: short timeouts, every error swallowed, one minute of silence after a failure.
+  Tasks can be excluded with `nevento-system.ignore`.
+
 ## [1.5.1] — 2026-10-05
 
 ### Added
