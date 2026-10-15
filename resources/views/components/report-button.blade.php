@@ -122,7 +122,7 @@
                 }
 
                 document.addEventListener('click', function (event) {
-                    if (event.target.closest('[data-nevento-report]') && !dialog.open) { event.preventDefault(); ctx(); sync(); dialog.showModal(); }
+                    if (event.target.closest('[data-nevento-report]') && !dialog.open) { event.preventDefault(); ctx(); sync(); dialog.showModal(); loadLib().catch(function () {}); }
                 });
                 root.querySelector('[data-nvr-close]').addEventListener('click', function () { dialog.close(); });
                 form.addEventListener('change', sync);
@@ -136,19 +136,33 @@
                 // not work, the browser's own "share this tab". The file input above is the last resort.
                 var PLACEHOLDER = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
 
+                // Loaded in the background as soon as the dialog opens, so the click itself does not wait for the download.
+                var libPromise = null;
+                function loadLib() {
+                    if (!libPromise) libPromise = import('https://cdn.jsdelivr.net/npm/html-to-image@1.11.13/+esm');
+                    libPromise.catch(function () { libPromise = null; });
+                    return libPromise;
+                }
+
+                // Only what is on screen: elements entirely outside the viewport are left out, so a long page costs the same
+                // as a short one, and the picture is the size of the window at normal resolution.
                 async function pageCapture() {
-                    var lib = await import('https://cdn.jsdelivr.net/npm/html-to-image@1.11.13/+esm');
+                    var lib = await loadLib();
                     return lib.toBlob(document.body, {
-                        cacheBust: false, skipFonts: true, imagePlaceholder: PLACEHOLDER,
-                        pixelRatio: Math.min(devicePixelRatio || 1, 2),
+                        cacheBust: false, skipFonts: true, imagePlaceholder: PLACEHOLDER, pixelRatio: 1,
+                        width: innerWidth, height: innerHeight,
+                        style: { transform: 'translate(' + (-scrollX) + 'px, ' + (-scrollY) + 'px)' },
                         backgroundColor: getComputedStyle(document.body).backgroundColor || '#ffffff',
                         filter: function (node) {
-                            if (!(node instanceof Element) || node.closest('[data-nvr]')) return !(node instanceof Element);
+                            if (!(node instanceof Element)) return true;
+                            if (node.closest('[data-nvr]')) return false;
                             if (node instanceof HTMLImageElement) {
                                 var src = node.currentSrc || node.src;
-                                return !src || src.indexOf(location.origin) === 0 || src.indexOf('data:') === 0;
+                                if (src && src.indexOf(location.origin) !== 0 && src.indexOf('data:') !== 0) return false;
                             }
-                            return true;
+                            var r = node.getBoundingClientRect();
+                            if (r.width === 0 && r.height === 0) return true;
+                            return !(r.bottom < 0 || r.top > innerHeight || r.right < 0 || r.left > innerWidth);
                         }
                     });
                 }

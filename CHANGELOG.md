@@ -2,6 +2,11 @@
 
 All notable changes to this package will be documented here.
 
+## [1.8.3] — 2026-10-15
+
+### Changed
+- The screenshot was slow: html-to-image copied the whole page. It now captures only the visible window (elements outside the viewport are left out) at normal resolution, and the library is downloaded in the background as soon as the dialog opens.
+
 ## [1.8.2] — 2026-10-15
 
 ### Fixed
