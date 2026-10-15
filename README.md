@@ -207,6 +207,24 @@ To disable auto-registration (e.g. to register routes under a custom prefix your
 
 ---
 
+## The shared app shell
+
+Every Nevento app has the same frame: top bar, workspace and app switcher, notification centre, account menu, sidebar. It lives here, in
+`<x-nevento::shell>`; an app only maps its own data to it. In the app's `resources/css/app.css`, after `@import 'tailwindcss';`:
+
+```css
+@import '../../vendor/eventsolutions/nevento-socialite/resources/css/nevento-theme.css';
+@source '../../vendor/eventsolutions/nevento-socialite/resources/views/**/*.blade.php';
+```
+
+Then `resources/views/layouts/app.blade.php` is a data mapping and one tag. The props (all arrays, see the top of
+`resources/views/components/shell.blade.php`): `app`, `user` (name, email, roles, profile_url, logout_url, logout_method, locale, links),
+`workspaces` and `active-workspace`, `apps` (`ShellLaunchableApps::forWorkspace($id)`), `notifications` (or null), `home-url`,
+`title`, `breadcrumb`, `success`, `error`. Slots: `sidebar` (menu items as `<x-nevento::nav-item>`, `nav-group`, `nav-section`), `account`
+(extra blocks in the account menu), `head`, `before` (above the page content) and `after` (end of the body). Light only: there is no dark mode.
+
+---
+
 ## Report button (bugs and feature requests)
 
 With `SYSTEM_TOKEN` set (see `config/nevento-system.php`), put this once in your layout, before `</body>`:

@@ -34,8 +34,10 @@ class SystemServiceProvider extends ServiceProvider
             $this->commands([ReportTenantsCommand::class, TenantsRunCommand::class]);
         }
 
-        // The report button: `<x-nevento::report-button />` and the route it posts to.
+        // The report button: `<x-nevento::report-button />` and the route it posts to; the shared app shell (`<x-nevento::shell>`, the
+        // navigation items, the marks) lives in the same folder, with its words in lang/ (`nevento::shell.*`).
         Blade::anonymousComponentPath(__DIR__.'/../../resources/views/components', 'nevento');
+        $this->loadTranslationsFrom(__DIR__.'/../../lang', 'nevento');
         $this->loadRoutesFrom(__DIR__.'/../../routes/system.php');
 
         if (! $this->app->make(SystemClient::class)->enabled()) {

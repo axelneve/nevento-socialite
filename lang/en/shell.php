@@ -1,0 +1,26 @@
+<?php
+
+return [
+    'dismiss' => 'Dismiss',
+    'go_overview' => 'Go to overview',
+    'open_sidebar' => 'Open menu',
+    'close_sidebar' => 'Close menu',
+    'workspace' => 'Workspace',
+    'switch_workspace' => 'Switch workspace',
+    'no_workspace' => 'No workspace',
+    'activate' => 'Activate',
+    'apps' => 'Apps',
+    'switch_app' => 'Switch app',
+    'current_app' => 'Current app',
+    'notifications' => 'Notifications',
+    'no_notifications' => 'No new notifications',
+    'all_notifications' => 'View all notifications',
+    'my_account' => 'My account',
+    'open_account_menu' => 'Open account menu',
+    'roles' => 'Permissions',
+    'language' => 'Language',
+    'language_nl' => 'Nederlands',
+    'language_en' => 'English',
+    'logout' => 'Log out',
+    'report' => 'Report or request',
+];

@@ -2,6 +2,25 @@
 
 All notable changes to this package will be documented here.
 
+## [1.9.0] — 2026-10-16
+
+### Added
+- The shared app shell: `<x-nevento::shell>` is the whole page frame of a Nevento app (console's look): the top bar with the workspace switcher,
+  the app switcher and the page title, the notification centre, the account menu, the sidebar and its mobile drawer, the flash toasts and the
+  report entry. An app only maps its own data (workspaces, notifications, user) and supplies its menu items. Parts: `shell.switch-dialog`
+  (one dialog for both switchers), `shell.notifications`, `shell.account-menu`, `shell.sidebar`, `shell.language`.
+- `<x-nevento::nav-item>`, `nav-group` (collapsible, native `<details>`), `nav-section` (labelled block), `brand-lockup`, `workspace-mark`
+  and `app-mark`.
+- `resources/css/nevento-theme.css`: the brand book's colours, fonts (Figtree, Space Grotesk), shapes and shadows as one Tailwind v4 theme, so
+  the apps cannot drift apart. No dark mode.
+- `ShellLaunchableApps`: the apps a person can open, from the IDP's `launchable-apps` endpoint, kept in the session for ten minutes and
+  empty when the IDP does not answer. It calls the app's own IDP (`services.nevento.host`, else `services.nevento_idp.base_url`), never a
+  default, so a development machine cannot send a local token to production.
+- Translations `nevento::shell.*` (nl, en).
+
+### Changed
+- The package's own `nav-group` (labelled block) is now `nav-section`; `nav-group` is the collapsible menu item.
+
 ## [1.8.5] — 2026-10-16
 
 ### Changed

@@ -1,0 +1,26 @@
+<?php
+
+return [
+    'dismiss' => 'Melding sluiten',
+    'go_overview' => 'Ga naar overzicht',
+    'open_sidebar' => 'Open menu',
+    'close_sidebar' => 'Sluit menu',
+    'workspace' => 'Werkruimte',
+    'switch_workspace' => 'Wissel werkruimte',
+    'no_workspace' => 'Geen werkruimte',
+    'activate' => 'Activeer',
+    'apps' => 'Apps',
+    'switch_app' => 'Wissel app',
+    'current_app' => 'Huidige app',
+    'notifications' => 'Meldingen',
+    'no_notifications' => 'Geen nieuwe meldingen',
+    'all_notifications' => 'Alle meldingen bekijken',
+    'my_account' => 'Mijn account',
+    'open_account_menu' => 'Open accountmenu',
+    'roles' => 'Rechten',
+    'language' => 'Taal',
+    'language_nl' => 'Nederlands',
+    'language_en' => 'English',
+    'logout' => 'Uitloggen',
+    'report' => 'Melding of wens',
+];
