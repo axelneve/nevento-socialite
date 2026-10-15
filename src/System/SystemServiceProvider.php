@@ -6,6 +6,7 @@ namespace EventSolutions\NeventoSocialite\System;
 
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Contracts\Events\Dispatcher;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider;
 
 /**
@@ -32,6 +33,10 @@ class SystemServiceProvider extends ServiceProvider
         if ($this->app->runningInConsole()) {
             $this->commands([ReportTenantsCommand::class, TenantsRunCommand::class]);
         }
+
+        // The report button: `<x-nevento::report-button />` and the route it posts to.
+        Blade::anonymousComponentPath(__DIR__.'/../../resources/views/components', 'nevento');
+        $this->loadRoutesFrom(__DIR__.'/../../routes/system.php');
 
         if (! $this->app->make(SystemClient::class)->enabled()) {
             return;

@@ -2,7 +2,16 @@
 
 All notable changes to this package will be documented here.
 
-## [1.6.3] — 2026-10-14
+## [1.7.0] — 2026-10-15
+
+### Added
+- `<x-nevento::report-button />`: a floating button and dialog where a logged-in user reports a bug or asks for a feature, with an
+  optional screenshot (taken with html-to-image, loaded from jsDelivr only when asked for, or an uploaded file). Plain CSS and JS,
+  no Alpine or Tailwind needed. Renders nothing until `SYSTEM_TOKEN` is set.
+- `POST /nevento/report` (`nevento.report`, `web` + `auth`, 10 per minute): the proxy behind it. It adds the reporter (name, email,
+  IDP id, role from `NeventoContext`), the workspace and the page, and forwards to nevento-system, so the app never holds the
+  system's token. Answers 404 while `SYSTEM_TOKEN` is not set.
+- `SystemClient::report()`.
 
 ### Added
 - Backup results to nevento-system, for apps with spatie/laravel-backup: a failed run (`BackupHasFailed`) is reported at once

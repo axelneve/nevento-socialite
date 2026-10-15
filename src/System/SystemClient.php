@@ -50,6 +50,17 @@ class SystemClient
         return $this->post('tenants', ['tenants' => $tenants]);
     }
 
+    /**
+     * A bug report or feature request from a user. Unlike the rest it may carry a screenshot, so it gets a longer
+     * timeout; the caller tells the user whether it arrived.
+     *
+     * @param  array<string, mixed>  $report
+     */
+    public function report(array $report): bool
+    {
+        return $this->post('reports', $report, 15);
+    }
+
     /** Forget a backoff, for tests and for long-running workers that should retry sooner. */
     public static function resetBackoff(): void
     {
@@ -59,7 +70,7 @@ class SystemClient
     /**
      * @param  array<string, mixed>  $payload
      */
-    private function post(string $path, array $payload): bool
+    private function post(string $path, array $payload, int $timeout = 3): bool
     {
         if (! $this->enabled() || (self::$backoffUntil !== null && self::$backoffUntil > time())) {
             return false;
@@ -69,7 +80,7 @@ class SystemClient
             $response = Http::withToken((string) config('nevento-system.token'))
                 ->acceptJson()
                 ->connectTimeout(1)
-                ->timeout(3)
+                ->timeout($timeout)
                 ->post(rtrim((string) config('nevento-system.url'), '/').'/api/v1/'.$path, array_filter($payload, fn ($value) => $value !== null));
 
             if ($response->successful()) {
