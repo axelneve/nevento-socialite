@@ -15,7 +15,7 @@
             .nvr { font: 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; color: #1f2937; }
             .nvr-open { position: fixed; right: 16px; bottom: 16px; z-index: 2147483000; display: inline-flex; align-items: center; gap: 6px; padding: 10px 14px; border: 0; border-radius: 999px; background: #1f2937; color: #fff; font: inherit; font-weight: 600; cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,.25); }
             .nvr-open:hover { background: #111827; }
-            .nvr-dialog { width: min(560px, calc(100vw - 24px)); max-height: calc(100vh - 24px); padding: 0; border: 0; border-radius: 14px; box-shadow: 0 20px 50px rgba(0,0,0,.35); }
+            .nvr-dialog { position: fixed; inset: 0; margin: auto; width: min(560px, calc(100vw - 24px)); max-height: calc(100vh - 24px); overflow: auto; padding: 0; color: inherit; background: #fff; border: 0; border-radius: 14px; box-shadow: 0 20px 50px rgba(0,0,0,.35); }
             .nvr-dialog::backdrop { background: rgba(17,24,39,.5); }
             .nvr-form { display: grid; gap: 12px; padding: 20px; }
             .nvr-form h2 { margin: 0; font-size: 18px; }

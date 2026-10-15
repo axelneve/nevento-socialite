@@ -2,6 +2,11 @@
 
 All notable changes to this package will be documented here.
 
+## [1.8.1] — 2026-10-15
+
+### Fixed
+- The dialog sat in the top left corner in apps with Tailwind: its reset removes the automatic margin a modal `<dialog>` is centred with. The component now sets `position: fixed; inset: 0; margin: auto` itself, and a white background and inherited colour so a dark page does not leak into it.
+
 ## [1.8.0] — 2026-10-15
 
 ### Added
