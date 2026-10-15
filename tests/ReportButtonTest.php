@@ -123,6 +123,7 @@ class ReportButtonTest extends TestCase
         $this->assertStringContainsString('class="nvr-open" data-nevento-report>Feedback<', Blade::render('<x-nevento::report-button label="Feedback" />'));
         $this->assertStringNotContainsString('class="nvr-open"', Blade::render('<x-nevento::report-button :floating="false" />'));
         $this->assertStringContainsString('data-nvr-dialog', Blade::render('<x-nevento::report-button :floating="false" />'));
+        $this->assertStringContainsString('Zorg dat er geen gegevens van anderen op je screenshot staan.', Blade::render('<x-nevento::report-button />'));
 
         config(['nevento-system.token' => null]);
         $this->assertSame('', trim(Blade::render('<x-nevento::report-button />')));

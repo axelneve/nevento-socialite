@@ -80,6 +80,7 @@
                         <button type="button" class="nvr-btn" data-nvr-capture>Maak screenshot</button>
                     </div>
                     <p class="nvr-note" data-nvr-shot-status>PNG, JPG of WebP tot 5 MB.</p>
+                    <p class="nvr-note">Zorg dat er geen gegevens van anderen op je screenshot staan.</p>
                 </div>
 
                 @foreach (['current_url', 'route_name', 'page_title', 'viewport', 'screen', 'language', 'timezone', 'referrer', 'timestamp', 'online'] as $key)

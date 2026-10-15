@@ -2,6 +2,11 @@
 
 All notable changes to this package will be documented here.
 
+## [1.8.5] — 2026-10-16
+
+### Changed
+- The report form says under the screenshot field: "Zorg dat er geen gegevens van anderen op je screenshot staan."
+
 ## [1.8.4] — 2026-10-15
 
 ### Fixed
