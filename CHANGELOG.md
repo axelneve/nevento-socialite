@@ -19,6 +19,7 @@ All notable changes to this package will be documented here.
 - Translations `nevento::shell.*` (nl, en).
 - The account menu carries the same links in every app: change account details and password (at the IDP, from `user.idp_url`) and change
   personal details (in myOffice, taken from the apps list, or `user.personal_url`).
+- The notification bell is always there (an empty list when the app or person has none).
 - `nav-section` folds away (the choice is remembered per label); the switchers show as soon as there is one workspace or app; `brand-lockup`
   takes a wide `logo` (the workspace's `logo_wide_url`) and shows it after a divider instead of the wordmark.
 

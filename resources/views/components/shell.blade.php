@@ -15,7 +15,7 @@
     'activeWorkspace' => null,
     // [['id', 'name', 'logo_url' => ?, 'url', 'active' => bool]] the apps this person can open
     'apps' => [],
-    // ['items' => [...], 'count' => int, 'url' => ?] or null for an app without a notification centre
+    // ['items' => [...], 'count' => int, 'url' => ?]; null (an app or a person without notifications) shows the bell with an empty list
     'notifications' => null,
     'success' => null,
     'error' => null,
@@ -173,9 +173,7 @@
                     @endif
 
                     <div class="flex items-center gap-2">
-                        @if ($notifications !== null)
-                            <x-nevento::shell.notifications :notifications="$notifications" />
-                        @endif
+                        <x-nevento::shell.notifications :notifications="$notifications ?? []" />
                         <x-nevento::shell.account-menu :user="$user">{{ $account ?? '' }}</x-nevento::shell.account-menu>
                     </div>
                 </div>
@@ -206,9 +204,7 @@
                             <span class="material-symbols-rounded text-[20px] leading-none">apps</span>
                         </button>
                     @endif
-                    @if ($notifications !== null)
-                        <x-nevento::shell.notifications :notifications="$notifications" />
-                    @endif
+                    <x-nevento::shell.notifications :notifications="$notifications ?? []" />
                     <x-nevento::shell.account-menu :user="$user" id="account-menu-modal-mobile">{{ $account ?? '' }}</x-nevento::shell.account-menu>
                 </div>
             </div>
