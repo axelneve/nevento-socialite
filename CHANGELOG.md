@@ -2,6 +2,11 @@
 
 All notable changes to this package will be documented here.
 
+## [1.9.1] — 2026-10-15
+
+### Fixed
+- Heartbeats from scheduled tasks are no longer lost on a busy server. They are sent from the scheduler's process, where nobody waits, so they now get ten seconds and one retry instead of three seconds and none. Before, a slow moment at :00 (every hourly task starts then) dropped the heartbeat, and nevento-system reported a task that had run as not running. Web requests keep the three seconds.
+
 ## [1.9.0] — 2026-10-16
 
 ### Added

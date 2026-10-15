@@ -63,6 +63,26 @@ class SystemReportingTest extends TestCase
         Http::assertSentCount(1);
     }
 
+    public function test_a_heartbeat_from_the_scheduler_survives_one_timeout(): void
+    {
+        Http::fake(['system.test/*' => Http::sequence()->pushFailedConnection('timed out')->push('', 204)]);
+
+        $this->assertTrue(app(SystemClient::class)->heartbeat('rento:sync', 'ok', null, 5000, null, 60));
+
+        Http::assertSentCount(2);
+    }
+
+    public function test_two_timeouts_in_a_row_give_up_and_back_off(): void
+    {
+        Http::fake(['system.test/*' => Http::sequence()->pushFailedConnection('timed out')->pushFailedConnection('timed out')]);
+        $client = app(SystemClient::class);
+
+        $this->assertFalse($client->heartbeat('a', 'ok'));
+        $this->assertFalse($client->heartbeat('b', 'ok'));
+
+        Http::assertSentCount(2);
+    }
+
     public function test_a_finished_scheduled_command_is_reported_with_its_cadence(): void
     {
         Http::fake(['system.test/*' => Http::response('', 204)]);

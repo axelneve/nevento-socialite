@@ -101,26 +101,40 @@ class SystemClient
     /**
      * @param  array<string, mixed>  $payload
      */
-    private function post(string $path, array $payload, int $timeout = 3): bool
+    private function post(string $path, array $payload, ?int $timeout = null): bool
     {
         if (! $this->enabled() || (self::$backoffUntil !== null && self::$backoffUntil > time())) {
             return false;
         }
 
-        try {
-            $response = Http::withToken((string) config('nevento-system.token'))
-                ->acceptJson()
-                ->connectTimeout(1)
-                ->timeout($timeout)
-                ->post(rtrim((string) config('nevento-system.url'), '/').'/api/v1/'.$path, array_filter($payload, fn ($value) => $value !== null));
+        // A web request must not wait for the system, so it gets three seconds. A scheduled task has already finished and its
+        // process is not waited on by anyone: it gets ten seconds and one retry, because on a busy server (all the hourly tasks
+        // start at :00) three seconds loses the heartbeat and the monitor then reports a task that did run as not running.
+        $background = app()->runningInConsole();
+        $timeout ??= $background ? 10 : 3;
+        $attempts = $background ? 2 : 1;
 
-            if ($response->successful()) {
-                return true;
+        for ($attempt = 1; $attempt <= $attempts; $attempt++) {
+            try {
+                $response = Http::withToken((string) config('nevento-system.token'))
+                    ->acceptJson()
+                    ->connectTimeout($background ? 3 : 1)
+                    ->timeout($timeout)
+                    ->post(rtrim((string) config('nevento-system.url'), '/').'/api/v1/'.$path, array_filter($payload, fn ($value) => $value !== null));
+
+                if ($response->successful()) {
+                    return true;
+                }
+
+                // An answer, but not a good one: the system is there and says no; asking again will not change that.
+                $this->backOff("HTTP {$response->status()}");
+
+                return false;
+            } catch (Throwable $e) {
+                if ($attempt === $attempts) {
+                    $this->backOff($e->getMessage());
+                }
             }
-
-            $this->backOff("HTTP {$response->status()}");
-        } catch (Throwable $e) {
-            $this->backOff($e->getMessage());
         }
 
         return false;
