@@ -1,10 +1,11 @@
-@props(['label' => 'Melding of wens'])
+@props(['label' => 'Melding of wens', 'floating' => true])
 {{--
     Report a bug or ask for a feature: a floating button, a dialog and the form, in one self-contained piece (plain CSS and
     JS, no Alpine or Tailwind needed). Posts to the package's proxy route, which adds who and where and forwards it to
     nevento-system. Renders nothing until SYSTEM_TOKEN is set and a user is logged in.
 
     Put it once in the app's layout, before </body>:   <x-nevento::report-button />
+    With :floating="false" there is no floating button; any element with the attribute data-nevento-report opens the dialog.
 --}}
 @if (filled(config('nevento-system.token')) && auth()->check())
     @php $result = session('nevento_report'); @endphp
@@ -36,7 +37,9 @@
             .nvr [hidden] { display: none !important; }
         </style>
 
-        <button type="button" class="nvr-open" data-nvr-open>{{ $label }}</button>
+        @if ($floating)
+            <button type="button" class="nvr-open" data-nevento-report>{{ $label }}</button>
+        @endif
 
         @if (is_array($result))
             <div class="nvr-toast {{ $result['ok'] ? '' : 'nvr-bad' }}" role="status" data-nvr-toast>{{ $result['message'] }}</div>
@@ -118,7 +121,9 @@
                     root.querySelector('[data-nvr-sev-label]').textContent = bug ? 'Impact' : 'Prioriteit';
                 }
 
-                root.querySelector('[data-nvr-open]').addEventListener('click', function () { ctx(); sync(); dialog.showModal(); });
+                document.addEventListener('click', function (event) {
+                    if (event.target.closest('[data-nevento-report]') && !dialog.open) { event.preventDefault(); ctx(); sync(); dialog.showModal(); }
+                });
                 root.querySelector('[data-nvr-close]').addEventListener('click', function () { dialog.close(); });
                 form.addEventListener('change', sync);
                 form.addEventListener('submit', function () { root.querySelector('[data-nvr-submit]').disabled = true; });

@@ -2,6 +2,12 @@
 
 All notable changes to this package will be documented here.
 
+## [1.8.0] — 2026-10-15
+
+### Added
+- `SystemClient::myReports($reporter)`: the reports one person sent from this app (id, type, summary, status, dates; no owner notes), for a "my reports" widget. Null when the system cannot be reached.
+- `<x-nevento::report-button :floating="false" />`: no floating button; any element with `data-nevento-report` opens the dialog instead. The floating button uses the same attribute.
+
 ## [1.7.0] — 2026-10-15
 
 ### Added

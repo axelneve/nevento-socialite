@@ -61,6 +61,37 @@ class SystemClient
         return $this->post('reports', $report, 15);
     }
 
+    /**
+     * The reports one person sent from this app (newest first, at most 50, without the owner's notes), for a "my reports"
+     * widget. Null when the system cannot be reached; callers should cache it and hide the widget on null.
+     *
+     * @return list<array{id: int, type: string, summary: string, status: string, created_at: string, resolved_at: string|null}>|null
+     */
+    public function myReports(string $reporter): ?array
+    {
+        if (! $this->enabled() || (self::$backoffUntil !== null && self::$backoffUntil > time())) {
+            return null;
+        }
+
+        try {
+            $response = Http::withToken((string) config('nevento-system.token'))
+                ->acceptJson()
+                ->connectTimeout(1)
+                ->timeout(3)
+                ->get(rtrim((string) config('nevento-system.url'), '/').'/api/v1/reports', ['reporter' => $reporter]);
+
+            if ($response->successful()) {
+                return array_values((array) $response->json('data', []));
+            }
+
+            $this->backOff("HTTP {$response->status()}");
+        } catch (Throwable $e) {
+            $this->backOff($e->getMessage());
+        }
+
+        return null;
+    }
+
     /** Forget a backoff, for tests and for long-running workers that should retry sooner. */
     public static function resetBackoff(): void
     {

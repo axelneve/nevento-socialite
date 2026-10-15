@@ -215,7 +215,7 @@ With `SYSTEM_TOKEN` set (see `config/nevento-system.php`), put this once in your
 <x-nevento::report-button />
 ```
 
-A logged-in user gets a floating button; the report goes to the inbox of nevento-system with their name, email, role,
+A logged-in user gets a floating button (or, with `:floating="false"`, use your own: any element with `data-nevento-report` opens the dialog); the report goes to the inbox of nevento-system with their name, email, role,
 workspace and page. Optional `label="..."` changes the button text. The route it posts to is `POST /nevento/report`
 (`nevento.report`). Without the token, or when logged out, the component renders nothing.
 

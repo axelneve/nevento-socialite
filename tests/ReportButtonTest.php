@@ -84,12 +84,33 @@ class ReportButtonTest extends TestCase
         $this->post(route('nevento.report'), $this->form())->assertNotFound();
     }
 
+    public function test_my_reports_are_read_for_one_reporter_and_a_failure_gives_null(): void
+    {
+        Http::fake(['system.test/api/v1/reports*' => Http::sequence()
+            ->push(['data' => [['id' => 3, 'type' => 'bug', 'summary' => 'Knop', 'status' => 'open', 'created_at' => '2026-10-15T08:00:00Z', 'resolved_at' => null]]])
+            ->push('', 500)]);
+
+        $mine = app(SystemClient::class)->myReports('piet@example.nl');
+        $this->assertSame('Knop', $mine[0]['summary']);
+        Http::assertSent(fn (Request $request) => str_contains($request->url(), 'reporter=piet%40example.nl') && $request->hasHeader('Authorization', 'Bearer sys_secret'));
+
+        SystemClient::resetBackoff();
+        $this->assertNull(app(SystemClient::class)->myReports('piet@example.nl'));
+        $this->assertNull(app(SystemClient::class)->myReports('piet@example.nl')); // backed off: no second call
+
+        config(['nevento-system.token' => null]);
+        SystemClient::resetBackoff();
+        $this->assertNull(app(SystemClient::class)->myReports('x'));
+    }
+
     public function test_the_button_renders_for_a_logged_in_user_with_a_token_only(): void
     {
         $this->assertSame('', trim(Blade::render('<x-nevento::report-button />')));
 
         $this->signIn();
-        $this->assertStringContainsString('data-nvr-open', Blade::render('<x-nevento::report-button label="Feedback" />'));
+        $this->assertStringContainsString('class="nvr-open" data-nevento-report>Feedback<', Blade::render('<x-nevento::report-button label="Feedback" />'));
+        $this->assertStringNotContainsString('class="nvr-open"', Blade::render('<x-nevento::report-button :floating="false" />'));
+        $this->assertStringContainsString('data-nvr-dialog', Blade::render('<x-nevento::report-button :floating="false" />'));
 
         config(['nevento-system.token' => null]);
         $this->assertSame('', trim(Blade::render('<x-nevento::report-button />')));
