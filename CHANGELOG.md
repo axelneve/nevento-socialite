@@ -2,6 +2,11 @@
 
 All notable changes to this package will be documented here.
 
+## [1.8.2] — 2026-10-15
+
+### Fixed
+- "Maak screenshot" failed after a few seconds on pages with images from other origins: one such image fails the whole capture. They are skipped now (with a placeholder), and when the page capture still fails the browser's own "share this tab" is tried before giving up. The message names the reason, and the console has the error.
+
 ## [1.8.1] — 2026-10-15
 
 ### Fixed

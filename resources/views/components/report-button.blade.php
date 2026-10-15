@@ -131,29 +131,66 @@
                 var toast = root.querySelector('[data-nvr-toast]');
                 if (toast) setTimeout(function () { toast.remove(); }, 8000);
 
-                // Screenshot of the page behind the dialog. html-to-image is loaded only when asked for; if it cannot
-                // load (offline, a strict CSP) or fails, the file input above is the way.
+                // Screenshot of the page behind the dialog. First the page itself (html-to-image, loaded only when asked
+                // for; images from other origins are skipped because one of them fails the whole capture); when that does
+                // not work, the browser's own "share this tab". The file input above is the last resort.
+                var PLACEHOLDER = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
+
+                async function pageCapture() {
+                    var lib = await import('https://cdn.jsdelivr.net/npm/html-to-image@1.11.13/+esm');
+                    return lib.toBlob(document.body, {
+                        cacheBust: false, skipFonts: true, imagePlaceholder: PLACEHOLDER,
+                        pixelRatio: Math.min(devicePixelRatio || 1, 2),
+                        backgroundColor: getComputedStyle(document.body).backgroundColor || '#ffffff',
+                        filter: function (node) {
+                            if (!(node instanceof Element) || node.closest('[data-nvr]')) return !(node instanceof Element);
+                            if (node instanceof HTMLImageElement) {
+                                var src = node.currentSrc || node.src;
+                                return !src || src.indexOf(location.origin) === 0 || src.indexOf('data:') === 0;
+                            }
+                            return true;
+                        }
+                    });
+                }
+
+                async function tabCapture() {
+                    if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) return null;
+                    var stream;
+                    try {
+                        stream = await navigator.mediaDevices.getDisplayMedia({ video: { displaySurface: 'browser' }, audio: false, preferCurrentTab: true, selfBrowserSurface: 'include' });
+                        var video = document.createElement('video');
+                        video.srcObject = stream; video.muted = true; video.playsInline = true;
+                        await new Promise(function (resolve) { video.onloadedmetadata = resolve; });
+                        await video.play();
+                        var canvas = document.createElement('canvas');
+                        canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+                        canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+                        return await new Promise(function (resolve) { canvas.toBlob(resolve, 'image/png'); });
+                    } finally {
+                        if (stream) stream.getTracks().forEach(function (track) { track.stop(); });
+                    }
+                }
+
+                function why(e) { return String((e && (e.message || e.type || e.name)) || e || 'onbekend').slice(0, 80); }
+
                 root.querySelector('[data-nvr-capture]').addEventListener('click', async function () {
                     status.textContent = 'Screenshot maken…';
-                    try {
-                        var lib = await import('https://cdn.jsdelivr.net/npm/html-to-image@1.11.13/+esm');
-                        dialog.close();
-                        await new Promise(function (r) { requestAnimationFrame(function () { requestAnimationFrame(r); }); });
-                        var blob = await lib.toBlob(document.body, {
-                            cacheBust: false, skipFonts: true, pixelRatio: Math.min(devicePixelRatio || 1, 2),
-                            backgroundColor: getComputedStyle(document.body).backgroundColor || '#ffffff',
-                            filter: function (node) { return !(node instanceof Element) || !node.closest('[data-nvr]'); }
-                        });
-                        dialog.showModal();
-                        if (!blob) throw new Error('empty');
-                        var transfer = new DataTransfer();
-                        transfer.items.add(new File([blob], 'screenshot-' + Date.now() + '.png', { type: 'image/png' }));
-                        root.querySelector('[data-nvr-file]').files = transfer.files;
-                        status.textContent = 'Screenshot toegevoegd.';
-                    } catch (e) {
-                        if (!dialog.open) dialog.showModal();
-                        status.textContent = 'Screenshot maken is niet gelukt. Voeg zo nodig zelf een afbeelding toe.';
+                    var blob = null, reason = '';
+                    dialog.close();
+                    await new Promise(function (r) { requestAnimationFrame(function () { requestAnimationFrame(r); }); });
+                    try { blob = await pageCapture(); } catch (e) { reason = why(e); console.warn('nevento report: page capture failed', e); }
+                    if (!blob) {
+                        try { blob = await tabCapture(); } catch (e) { reason = reason || why(e); console.warn('nevento report: tab capture failed', e); }
                     }
+                    dialog.showModal();
+                    if (!blob) {
+                        status.textContent = 'Screenshot maken is niet gelukt (' + reason + '). Voeg zo nodig zelf een afbeelding toe.';
+                        return;
+                    }
+                    var transfer = new DataTransfer();
+                    transfer.items.add(new File([blob], 'screenshot-' + Date.now() + '.png', { type: 'image/png' }));
+                    root.querySelector('[data-nvr-file]').files = transfer.files;
+                    status.textContent = 'Screenshot toegevoegd.';
                 });
             })();
         </script>
