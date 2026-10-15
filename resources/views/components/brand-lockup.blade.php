@@ -28,7 +28,7 @@
     </svg>
     @if (filled($logo))
         <span class="w-px bg-hairline-strong" style="height: {{ (int) round($size * 0.8) }}px;" aria-hidden="true"></span>
-        <img src="{{ $logo }}" alt="" class="w-auto object-contain" style="height: {{ (int) round($size * 0.9) }}px; max-width: 9rem;">
+        <img src="{{ $logo }}" alt="" onerror="this.previousElementSibling.remove(); this.remove()" class="w-auto object-contain" style="height: {{ (int) round($size * 0.9) }}px; max-width: 9rem;">
     @else
         <span class="font-display font-bold text-brand-strong"
               style="font-size: {{ max(13, (int) round($size * 0.52)) }}px; letter-spacing: -0.02em; line-height: 1;">
