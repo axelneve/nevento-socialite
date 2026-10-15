@@ -20,6 +20,8 @@
     'success' => null,
     'error' => null,
     'errorLabel' => null,
+    // The wordmark beside the N when the workspace has no wide logo; null is Nevento Digital.
+    'brandName' => null,
 ])
 
 @php
@@ -113,7 +115,7 @@
             <div class="sticky top-0 z-50 hidden h-16 grid-cols-[18rem_minmax(0,1fr)] border-b border-hairline bg-white shadow-xs lg:grid">
                 <div class="flex items-center px-6">
                     <a href="{{ $homeUrl }}" class="inline-flex items-center" aria-label="{{ __('nevento::shell.go_overview') }}">
-                        <x-nevento::brand-lockup :size="30" :logo="$hasWorkspace ? ($activeWorkspace['logo_wide_url'] ?? null) : null" />
+                        <x-nevento::brand-lockup :size="30" :name="$brandName" :logo="$hasWorkspace ? ($activeWorkspace['logo_wide_url'] ?? null) : null" />
                     </a>
                 </div>
 
@@ -187,7 +189,7 @@
                     </svg>
                 </button>
                 <a href="{{ $homeUrl }}" class="inline-flex items-center" aria-label="{{ __('nevento::shell.go_overview') }}">
-                    <x-nevento::brand-lockup :size="30" :logo="$hasWorkspace ? ($activeWorkspace['logo_wide_url'] ?? null) : null" />
+                    <x-nevento::brand-lockup :size="30" :name="$brandName" :logo="$hasWorkspace ? ($activeWorkspace['logo_wide_url'] ?? null) : null" />
                 </a>
                 <div class="flex items-center gap-1">
                     @if ($canSwitchWorkspace && ! $portalLabel)

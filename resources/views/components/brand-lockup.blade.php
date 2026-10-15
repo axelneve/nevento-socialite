@@ -2,6 +2,8 @@
     'size' => 30,
     // A workspace's wide logo: shown beside the mark, after a divider, instead of the wordmark.
     'logo' => null,
+    // The wordmark when there is no logo: the app's own name (myOffice, Rento); the platform's name by default.
+    'name' => null,
 ])
 
 {{-- The Nevento Digital mark and wordmark. The mark is inline SVG (no asset to publish into each app) and the wordmark is live text in the
@@ -32,7 +34,7 @@
     @else
         <span class="font-display font-bold text-brand-strong"
               style="font-size: {{ max(13, (int) round($size * 0.52)) }}px; letter-spacing: -0.02em; line-height: 1;">
-            Nevento&nbsp;Digital
+            {!! filled($name) ? e($name) : 'Nevento&nbsp;Digital' !!}
         </span>
     @endif
 </span>
