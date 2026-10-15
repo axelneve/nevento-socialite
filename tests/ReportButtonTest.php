@@ -63,6 +63,18 @@ class ReportButtonTest extends TestCase
         });
     }
 
+    public function test_an_app_without_the_session_keys_falls_back_to_the_users_columns(): void
+    {
+        Http::fake(['system.test/*' => Http::response(['id' => 1], 201)]);
+        $user = TestUser::create(['name' => 'Piet', 'email' => 'piet@example.nl', 'idp_id' => '42', 'workspace_role' => 'office']);
+
+        $this->actingAs($user)->post(route('nevento.report'), $this->form(['context' => ['route_name' => 'generated::abc123']]))->assertSessionHas('nevento_report.ok', true);
+
+        Http::assertSent(fn (Request $request) => $request->data()['reporter_name'] === 'Piet' && $request->data()['reporter_email'] === 'piet@example.nl'
+            && $request->data()['reporter_idp_id'] === '42' && $request->data()['reporter_role'] === 'office'
+            && ! isset($request->data()['route_name']) && ! isset($request->data()['workspace']));
+    }
+
     public function test_the_user_is_told_when_the_system_cannot_be_reached(): void
     {
         Http::fake(['system.test/*' => Http::response('', 500)]);

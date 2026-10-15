@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace EventSolutions\NeventoSocialite\System;
 
 use EventSolutions\NeventoSocialite\NeventoContext;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -34,16 +35,19 @@ class ReportController
 
         $user = NeventoContext::user();
         $workspace = NeventoContext::workspace();
+        $account = $request->user();
         $client = array_filter((array) ($data['context'] ?? []), fn ($value) => filled($value));
 
         $sent = $system->report(array_filter([
             // A fresh id per submit: a retried request (double click, timeout) updates instead of duplicating.
             'source_ref' => (string) Str::uuid(),
-            'workspace' => isset($workspace['id']) ? (string) $workspace['id'] : null,
-            'reporter_name' => $user['name'] ?? $request->user()?->name,
-            'reporter_email' => $user['email'] ?? $request->user()?->email,
-            'reporter_idp_id' => isset($user['id']) ? (string) $user['id'] : null,
-            'reporter_role' => NeventoContext::role(),
+            // Apps that keep the IDP context in the session (NeventoContext) first; apps with their own conventions fall back
+            // to the tenant (stancl) and to the columns the README asks of the users table.
+            'workspace' => isset($workspace['id']) ? (string) $workspace['id'] : (function_exists('tenant') && tenant('id') !== null ? (string) tenant('id') : null),
+            'reporter_name' => $user['name'] ?? $account?->name,
+            'reporter_email' => $user['email'] ?? $account?->email,
+            'reporter_idp_id' => isset($user['id']) ? (string) $user['id'] : $this->attribute($account, ['idp_id', 'idp_user_id']),
+            'reporter_role' => NeventoContext::role() ?? $this->attribute($account, ['idp_role', 'workspace_role']),
             'type' => $data['type'],
             'summary' => trim($data['summary']),
             'description' => trim($data['description']),
@@ -51,7 +55,8 @@ class ReportController
             'severity' => $data['severity'] ?? null,
             'feature_area' => $data['feature_area'] ?? null,
             'page_url' => $client['current_url'] ?? null,
-            'route_name' => $client['route_name'] ?? null,
+            // Laravel names an unnamed route "generated::<hash>"; that says nothing.
+            'route_name' => str_starts_with((string) ($client['route_name'] ?? ''), 'generated::') ? null : ($client['route_name'] ?? null),
             'user_agent' => $request->userAgent(),
             'context' => ['client' => $client, 'server' => array_filter([
                 'app_env' => app()->environment(),
@@ -69,6 +74,20 @@ class ReportController
         return $request->expectsJson()
             ? response()->json($result, $sent ? 201 : 502)
             : back()->with('nevento_report', $result);
+    }
+
+    /** @param  list<string>  $names */
+    private function attribute(?Authenticatable $account, array $names): ?string
+    {
+        foreach ($names as $name) {
+            $value = $account !== null && method_exists($account, 'getAttribute') ? $account->getAttribute($name) : null;
+
+            if (filled($value)) {
+                return (string) $value;
+            }
+        }
+
+        return null;
     }
 
     private function dataUrl(Request $request): ?string

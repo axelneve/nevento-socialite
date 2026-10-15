@@ -2,6 +2,11 @@
 
 All notable changes to this package will be documented here.
 
+## [1.8.4] — 2026-10-15
+
+### Fixed
+- Reports from apps that do not keep the IDP context in the `nevento_*` session keys (rento) arrived without workspace, IDP id and role. They now fall back to the stancl tenant id, the user's `idp_id` or `idp_user_id`, and `idp_role` or `workspace_role`. An unnamed route (`generated::...`) is no longer sent as the route name.
+
 ## [1.8.3] — 2026-10-15
 
 ### Changed
