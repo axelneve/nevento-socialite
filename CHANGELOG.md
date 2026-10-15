@@ -17,6 +17,10 @@ All notable changes to this package will be documented here.
   empty when the IDP does not answer. It calls the app's own IDP (`services.nevento.host`, else `services.nevento_idp.base_url`), never a
   default, so a development machine cannot send a local token to production.
 - Translations `nevento::shell.*` (nl, en).
+- The account menu carries the same links in every app: change account details and password (at the IDP, from `user.idp_url`) and change
+  personal details (in myOffice, taken from the apps list, or `user.personal_url`).
+- `nav-section` folds away (the choice is remembered per label); the switchers show as soon as there is one workspace or app; `brand-lockup`
+  takes a wide `logo` (the workspace's `logo_wide_url`) and shows it after a divider instead of the wordmark.
 
 ### Changed
 - The package's own `nav-group` (labelled block) is now `nav-section`; `nav-group` is the collapsible menu item.

@@ -25,15 +25,31 @@
 @php
     $authed = auth()->check();
     $workspaceList = array_values($workspaces);
-    $canSwitchWorkspace = count($workspaceList) > 1;
+    $canSwitchWorkspace = count($workspaceList) > 0;
     $appList = array_values($apps);
-    $canSwitchApp = count($appList) > 1;
+    $canSwitchApp = count($appList) > 0;
     $appName = trim((string) ($app['name'] ?? config('app.name')));
     $crumb = $breadcrumb ?? $title;
     $hasWorkspace = is_array($activeWorkspace) && $activeWorkspace !== [];
+
+    // The same account links in every app: account and password live at the IDP (user.idp_url), personal details in myOffice, which is
+    // taken from the apps list (not the app you are in; user.personal_url overrides where an app knows better).
+    $idp = rtrim((string) ($user['idp_url'] ?? ''), '/');
+    $personalUrl = $user['personal_url'] ?? null;
+    foreach ($appList as $candidate) {
+        if ($personalUrl === null && ! ($candidate['active'] ?? false) && strcasecmp((string) ($candidate['name'] ?? ''), 'myOffice') === 0) {
+            $personalUrl = preg_replace('#/auth/redirect$#', '', (string) $candidate['url']).'/mijn';
+        }
+    }
+    $user['links'] = array_values(array_filter([
+        $idp !== '' ? ['label' => __('nevento::shell.account_details'), 'url' => $idp.'/profile/account', 'icon' => 'person'] : null,
+        $personalUrl ? ['label' => __('nevento::shell.personal_details'), 'url' => $personalUrl, 'icon' => 'badge'] : null,
+        $idp !== '' ? ['label' => __('nevento::shell.change_password'), 'url' => $idp.'/profile/password', 'icon' => 'lock'] : null,
+        ...(array) ($user['links'] ?? []),
+    ]));
 @endphp
 <!doctype html>
-<html class="h-full bg-paper" lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<html class="h-full bg-paper" style="scrollbar-gutter: stable;" lang="{{ str_replace('_', '-', app()->getLocale()) }}">
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -52,7 +68,7 @@
         {{ $head ?? '' }}
         @stack('head')
     </head>
-    <body class="h-full antialiased text-ink bg-paper overflow-y-scroll" style="scrollbar-gutter: stable;">
+    <body class="h-full antialiased text-ink bg-paper">
 
         @if ($authed)
             {{-- Rendered once, outside both top bars, so the mobile triggers reach them too (the desktop top bar is hidden below `lg`). --}}
@@ -97,7 +113,7 @@
             <div class="sticky top-0 z-50 hidden h-16 grid-cols-[18rem_minmax(0,1fr)] border-b border-hairline bg-white shadow-xs lg:grid">
                 <div class="flex items-center px-6">
                     <a href="{{ $homeUrl }}" class="inline-flex items-center" aria-label="{{ __('nevento::shell.go_overview') }}">
-                        <x-nevento::brand-lockup :size="30" />
+                        <x-nevento::brand-lockup :size="30" :logo="$hasWorkspace ? ($activeWorkspace['logo_wide_url'] ?? null) : null" />
                     </a>
                 </div>
 
@@ -171,7 +187,7 @@
                     </svg>
                 </button>
                 <a href="{{ $homeUrl }}" class="inline-flex items-center" aria-label="{{ __('nevento::shell.go_overview') }}">
-                    <x-nevento::brand-lockup :size="30" />
+                    <x-nevento::brand-lockup :size="30" :logo="$hasWorkspace ? ($activeWorkspace['logo_wide_url'] ?? null) : null" />
                 </a>
                 <div class="flex items-center gap-1">
                     @if ($canSwitchWorkspace && ! $portalLabel)
@@ -232,6 +248,15 @@
         <x-nevento::report-button :floating="false" />
 
         {{ $after ?? '' }}
+
+        <script>
+            // Sidebar blocks fold away; remember per label what was folded, except for the block that holds the open page.
+            document.querySelectorAll('details[data-nav-section]').forEach((block) => {
+                const key = 'nevento-nav:' + block.dataset.navSection;
+                try { if (localStorage.getItem(key) === '0' && ! block.querySelector('[aria-current="page"]')) block.open = false; } catch (e) {}
+                block.addEventListener('toggle', () => { try { localStorage.setItem(key, block.open ? '1' : '0'); } catch (e) {} });
+            });
+        </script>
 
         @stack('scripts')
     </body>
