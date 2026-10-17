@@ -17,7 +17,7 @@ return [
     'all_notifications' => 'View all notifications',
     'my_account' => 'My account',
     'open_account_menu' => 'Open account menu',
-    'roles' => 'Permissions',
+    'roles' => 'Role',
     'account_details' => 'Change account details',
     'personal_details' => 'Change personal details',
     'change_password' => 'Change password',

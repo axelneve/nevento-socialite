@@ -17,7 +17,7 @@ return [
     'all_notifications' => 'Alle meldingen bekijken',
     'my_account' => 'Mijn account',
     'open_account_menu' => 'Open accountmenu',
-    'roles' => 'Rechten',
+    'roles' => 'Rol',
     'account_details' => 'Accountgegevens wijzigen',
     'personal_details' => 'Persoonsgegevens wijzigen',
     'change_password' => 'Wachtwoord wijzigen',
